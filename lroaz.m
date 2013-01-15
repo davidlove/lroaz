@@ -1,6 +1,6 @@
 function [exitflag,pWorst,solnBest,soln2Best, ...
     indivScens,zupper,relLikelihood,numCuts] =  ...
-    lroaz_version17(gammaprime, inputInitGuess, nfactor, periods1)
+    lroaz(gammaprime, inputInitGuess, nfactor, periods1)
 
 % clear get_stage_vectors
 

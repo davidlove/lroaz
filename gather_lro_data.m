@@ -1,4 +1,4 @@
-function gather_lro_data_version6(saveFileName)
+function gather_lro_data(saveFileName)
 %gather_lro_data_version2 loops over lroaz to get lots of data
 %   Version 2 begins user lroaz_version15 (or later versions) 
 %   that might be useful in gettting rid of the mysterious
@@ -105,7 +105,7 @@ while exitFlag ~= 1 && num <= totalNum
     disp(['gammaprime = ' num2str(gp) ', num = ' num2str(num) ...
         ' of ' num2str(totalNum)])
     disp(' ')
-    [exitFlag,p1,solnBestNew,soln2BestNew,s1,z1,r1,cuts1] = lroaz_version17(gp,solnBest);
+    [exitFlag,p1,solnBestNew,soln2BestNew,s1,z1,r1,cuts1] = lroaz(gp,solnBest);
     if isempty(soln2BestNew)
         solnBest = soln2Best;
     else
