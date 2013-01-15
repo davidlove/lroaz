@@ -1,6 +1,6 @@
 function [exitflag,pWorst,solnBest,soln2Best, ...
-    indivScens,zupper,relLikelihood] =  ...
-    lroaz_version16(gammaprime, inputInitGuess, nfactor, periods1)
+    indivScens,zupper,relLikelihood,numCuts] =  ...
+    lroaz_version17(gammaprime, inputInitGuess, nfactor, periods1)
 
 % clear get_stage_vectors
 
@@ -21,17 +21,18 @@ end
 % problem, do no throw an error
 % Version 16: return both best and second-best solutions found so that
 % gather_lro_data might work a bit better
+% Version 17: adds output argument stating the number of optimality cuts.
 
 % optimizer = 'fmincon';
 optimizer = 'linprog';
 % optimizer = 'cvx';
 
-ConnectionsFile = 'all_scenarios/5/Connections.xlsx';
+ConnectionsFile = 'all_scenarios/9/Connections.xlsx';
 cellInputFile = { ...
-    'all_scenarios/5/Inputs.xlsx', ...
-    'all_scenarios/6/Inputs.xlsx', ...
-    'all_scenarios/7/Inputs.xlsx', ...
-    'all_scenarios/8/Inputs.xlsx', ...
+    'all_scenarios/9/Inputs.xlsx', ...
+    'all_scenarios/10/Inputs.xlsx', ...
+    'all_scenarios/11/Inputs.xlsx', ...
+    'all_scenarios/12/Inputs.xlsx', ...
     };
 
 % Problem Parameters
@@ -170,7 +171,8 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
                 [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
                 lowerBound, upperBound, ...
                 initGuess, options);
-            if exitflag == -3 || exitflag == -4 || exitflag == -2
+            if exitflag == -3 || exitflag == -4 || ...
+                    exitflag == -2 || exitflag == -5
                 break
             end
         case 'cvx'
@@ -334,6 +336,7 @@ if ~isempty(soln2Best)
 end
 relLikelihood = exp(sum(numscen.*(log(pWorst)-log(pmle))));
 corRelLikelihood = exp(sum(numscen.*(log(pWorst./sum(pWorst))-log(pmle))));
+numCuts = size(objA,1);
 
 disp(['Time elapsed = ' num2str(toc)])
 read_results(x0,c,periods1)
