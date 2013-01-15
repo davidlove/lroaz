@@ -1,13 +1,13 @@
-function lroaz_version11()
+function lroaz_version12()
 
 clear all
 
 % lroaz is an attempt to make an LRO for the model of Tucson that I have.
-% It is based on lroslp_version11.
+% It is based on lroslp_version12.
 
 % optimizer = 'fmincon';
-% optimizer = 'linprog';
-optimizer = 'cvx';
+optimizer = 'linprog';
+% optimizer = 'cvx';
 
 ConnectionsFile = 'all_scenarios/5/Connections.xlsx';
 cellInputFile = { ...
@@ -18,13 +18,13 @@ cellInputFile = { ...
     };
 
 % Problem Parameters
-numscen = 10*ones(size(cellInputFile));
+numscen = 5*ones(size(cellInputFile));
 N = sum(numscen);
 % The constant inside the log is a number less than 1
-gammaprime = 0.5;
+gammaprime = 0.9;
 Nbar = N*(log(N)-1) - log(gammaprime);
 Period = 41;
-periods1 = 6;
+periods1 = 10;
 % c = 1;
 
 [c,A,Rhs,l,u] = get_stage_vectors(1,1, ...
@@ -74,11 +74,20 @@ mu0 = find_mu(lambda0, numscen,indivScens);
 
 % Initialize variables for exit conditions
 pWorst = lambda0*numscen./(mu0-indivScens');
-tolerance = 1e-6;
+tolerance = 1e-5;
 notPrimalSolnFound = true;
 
 % Get the initial objective cut
 [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
+
+% Variables for trust region
+trustRegion = max(abs([x0;lambda0;mu0;theta0]));
+rhoBound = 1/4;
+scaleDown = 1/4;
+scaleUp = 3;
+eta = 1/5;
+trustRatio = 0.99;
+
 while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
 %     Update the matrices of objective and feasibility cuts
     objA = [objA; slope, -1];
@@ -87,15 +96,29 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
     feasRhs = [feasRhs; -feasInt];
     
     
-%     Solve the master problem and get the solution
-    %     Format for decision variables: [x lambda mu theta]
+
+%     Format for decision variables: [x lambda mu theta]
     initGuess = [x0; lambda0; mu0; theta0];
+    xOld = x0;
+    lambdaOld = lambda0;
+    muOld = mu0;
+    thetaOld = theta0;
+    
+%     Define bounds
+    lowerTrust = initGuess - trustRegion;
+    lowerTrust(end) = -Inf;
+    upperTrust = initGuess + trustRegion;
+    upperTrust(end) = Inf;
     lowerBound = [l;0;scenLowBnd;-Inf];
-    upperBound = [u;max(1,10*lambda0);10*mu0;Inf];
+%     upperBound = [u;max(1,10*lambda0);10*mu0;Inf];
+    upperBound = [u;Inf;Inf;Inf];
+    lowerBound = max(lowerBound, lowerTrust);
+    upperBound = min(upperBound, upperTrust);
     
     disp([ num2str(size(objA,1)) ' objective cuts, ' ...
         num2str(size(feasA,1)) ' feasibility cuts'])
     toc
+%     Solve the master problem and get the solution
     switch optimizer
         case 'fmincon'
             [x,~,exitflag] = fmincon( @(x) opt_obj(x,c,N,Nbar), initGuess, ...
@@ -109,20 +132,24 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
                 initGuess, options);
         case 'cvx'
             linobj = linear_obj(c,Nbar);
-            cvx_begin
+            cvx_begin quiet
                 variable x(length(initGuess))
+                cvx_precision best
                 minimize linobj*x
                 subject to
                     [objA; feasA]*x <= [objRhs; feasRhs];
                     A*x == Rhs;
-                    lbIndex = (lowerBound > -Inf);
-                    ubIndex = (upperBound < Inf);
+                    lbIndex = find(lowerBound > -Inf);
+                    ubIndex = find(upperBound < Inf);
                     lowerBound(lbIndex) <= x(lbIndex);
                     x(ubIndex) <= upperBound(ubIndex);
 %                     lowerBound <= x <= upperBound;
             cvx_end
-            exitflag = strcmp(cvx_status,'Solved');
-            exitflag = exitflag - (exitflag==0);
+            exitflag = 1*strcmp(cvx_status,'Solved') + ...
+                -2 * strcmp(cvx_status,'Infeasible') + ...
+                -3 * strcmp(cvx_status,'Unbounded' ) + ...
+                 6 * strcmp(cvx_status,'Inaccurate/Solved');
+            exitflag = exitflag - 40*(exitflag==0);
         otherwise
             error(['Optimizer ' optimizer ' not supported'])
     end
@@ -136,10 +163,10 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
 %     Solve Subproblems
     [indivScens slope intercept] = solve_scens(x0,numscen);
     
-%     If mu feasible, update the lower bount on z
+%     If mu infeasible, generate feasibility cut and prevent zlower from
+%     updating
     [hMax hIndex] = max(indivScens);
     muFeasible = mu0 > hMax;
-    trustRegionInterior = (lambda0 < 0.9*upperBound(end-2)) & (mu0 < 0.9*(upperBound(end-1)));
     if ~muFeasible
         %         If mu infeasible, generate feasibility cuts and find feasible mu
         [feasSlope feasInt] = get_feas_cut(slope,intercept,hIndex);
@@ -150,25 +177,71 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
         feasSlope = [];
         feasInt = [];
     end
+
+%     Get true second stage cost and a new cut
+    [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
     
+%     Calculate whether inside the interior of the trust region
+%     trustRegionInterior = (lambda0 < 0.9*upperBound(end-2)) & (mu0 < 0.9*(upperBound(end-1)));
+    upperT = ((1+trustRatio)*upperTrust(1:end-1) + (1-trustRatio)*lowerTrust(1:end-1)) / 2;
+    lowerT = ((1-trustRatio)*upperTrust(1:end-1) + (1+trustRatio)*lowerTrust(1:end-1)) / 2;
+    trustRegionInterior = ~(sum(lowerT > x(1:end-1)) || sum(x(1:end-1) > upperT));
+    
+%     Modify trust region size
+    rho = (thetaOld - theta0) / (thetaOld - thetaMaster);
+%     assert(rho <= 1, ['rho = ' num2str(rho) ' > 1, thetaMaster = '...
+%         num2str(thetaMaster) ', theta0 = ' num2str(theta0)])
+    if rho < rhoBound
+        trustRegion = scaleDown * trustRegion;
+        disp(['Trust region scaled down to ' num2str(trustRegion)])
+    elseif rho > 1-rhoBound && ~trustRegionInterior
+        trustRegion = scaleUp * trustRegion;
+        disp(['Trust region scaled up to ' num2str(trustRegion)])
+    end
+    if rho > eta
+        newSolution = true;
+        disp('New solution found')
+    else
+        newSolution = false;
+        x0 = xOld;
+        lambda0 = lambdaOld;
+        mu0 = muOld;
+        theta0 = thetaOld;
+    end
+    
+%     Update zlower if successful optimization in the interior of the trust
+%     region
     switch exitflag
         case 1
-            if muFeasible && trustRegionInterior
+            if muFeasible && trustRegionInterior && newSolution
                 zlower = get_first_stage_obj(x0,lambda0,mu0,c,N,Nbar)+thetaMaster;
-                disp('Feasible solution, updating zlower')
+                disp(['Feasible solution, updating zlower = ' num2str(zlower)])
             end
         case 0
-            options = optimset(options,'MaxIter',2*options.MaxIter);
-            disp(['Number of iterations increased to ' num2str(options.MaxIter) '.'])
+            switch optimizer
+                case {'linprog','fmincon'}
+                    options = optimset(options,'MaxIter',2*options.MaxIter);
+                    disp(['Number of iterations increased to ' num2str(options.MaxIter) '.'])
+            end
+        case -2
+            error('Master problem was found to be infeasible')
+        case -3
+            error('Master problem was found to be unbounded')
+        case 6
+            disp('Inaccurate solution found.  Do not update zlower')
         otherwise
-            
+            if exist('cvx_status','var')
+                error(['cvx_statis is ' cvx_status ', error code is ' num2str(exitflag)])
+            else
+                error(['Unknown error code' num2str(exitflag)])
+            end
     end
     
 %     Update the upper bound on z and get the next cuts
-    [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
-    if opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar) < zupper && notPrimalSolnFound
+    if opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar) < zupper && ...
+            newSolution
         zupper = opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar);
-        disp('New best solution, updating zupper')
+        disp(['New best solution, updating zupper = ' num2str(zupper)])
     end
     pWorst = lambda0*numscen./(mu0-indivScens');
     disp(['Total probability = ' num2str(sum(pWorst))])
@@ -181,10 +254,16 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
     
     disp(' ')
 end
-% if zlower > zupper
-%     error('zlower > zupper')
-% end
 pmle = numscen./N;
+
+% Return costs to original scaling
+c = c/scale;
+indivScens = indivScens/scale;
+lambda0 = lambda0/scale;
+mu0 = mu0/scale;
+zlower = zlower/scale;
+zupper = zupper/scale;
+
 disp(['Time elapsed = ' num2str(toc)])
 read_results(x0,c,periods1)
 disp(['lambda = ' num2str(lambda0) ', mu = ' num2str(mu0)])
@@ -198,6 +277,11 @@ disp(['Worst-case relative likelihood = ' ...
 disp(['Worst-case corrected relative likelihood = ' ...
     num2str( exp(sum(numscen.*(log(pWorst./sum(pWorst))-log(pmle)))) )])
 disp(['zlower = ' num2str(zlower) ', zupper = ' num2str(zupper)])
+disp(['Relative error = ' num2str((zupper - zlower)/min(abs(zupper),abs(zlower)))])
+disp(['Tolerance = ' num2str(tolerance)])
+if zlower > zupper
+    error('zlower > zupper')
+end
 
 % ------------------------------------------------------------------------
 % ---------------- Accessory Functions -----------------------------------
