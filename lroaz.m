@@ -1,9 +1,13 @@
-function lroaz_version10()
+function lroaz_version11()
 
 clear all
 
 % lroaz is an attempt to make an LRO for the model of Tucson that I have.
-% It is based on lroslp_version10.
+% It is based on lroslp_version11.
+
+% optimizer = 'fmincon';
+% optimizer = 'linprog';
+optimizer = 'cvx';
 
 ConnectionsFile = 'all_scenarios/5/Connections.xlsx';
 cellInputFile = { ...
@@ -40,13 +44,18 @@ feasRhs = [];
 feasSlope = [];
 feasInt = [];
 
-% Linear options
-% options = optimset('MaxIter',85);
-
-% Nonlinear options
-options = optimset('MaxIter',1000, ...
-    'Algorithm','interior-point', ...
-    'GradObj','on');
+switch optimizer
+    case 'fmincon'
+        options = optimset('MaxIter',1000, ...
+            'Algorithm','interior-point', ...
+            'GradObj','on');
+    case 'linprog'
+        options = optimset('MaxIter',85);
+    case 'cvx'
+        
+    otherwise
+        error(['Optimizer ' optimizer ' not supported'])
+end
 
 % Uniform lower bounds on scenario costs
 scenLowBnd = 0;
@@ -87,22 +96,42 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
     disp([ num2str(size(objA,1)) ' objective cuts, ' ...
         num2str(size(feasA,1)) ' feasibility cuts'])
     toc
-    [x,~,exitflag] = fmincon( @(x) opt_obj(x,c,N,Nbar), initGuess, ...
-        [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
-        lowerBound, upperBound, [], options );
-%     linobj = linear_obj(c,Nbar);
-%     [x,~,exitflag] = linprog( linobj, ...
-%         [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
-%         lowerBound, upperBound, ...
-%         initGuess, options);
+    switch optimizer
+        case 'fmincon'
+            [x,~,exitflag] = fmincon( @(x) opt_obj(x,c,N,Nbar), initGuess, ...
+                [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
+                lowerBound, upperBound, [], options );
+        case 'linprog'
+            linobj = linear_obj(c,Nbar);
+            [x,~,exitflag] = linprog( linobj, ...
+                [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
+                lowerBound, upperBound, ...
+                initGuess, options);
+        case 'cvx'
+            linobj = linear_obj(c,Nbar);
+            cvx_begin
+                variable x(length(initGuess))
+                minimize linobj*x
+                subject to
+                    [objA; feasA]*x <= [objRhs; feasRhs];
+                    A*x == Rhs;
+                    lbIndex = (lowerBound > -Inf);
+                    ubIndex = (upperBound < Inf);
+                    lowerBound(lbIndex) <= x(lbIndex);
+                    x(ubIndex) <= upperBound(ubIndex);
+%                     lowerBound <= x <= upperBound;
+            cvx_end
+            exitflag = strcmp(cvx_status,'Solved');
+            exitflag = exitflag - (exitflag==0);
+        otherwise
+            error(['Optimizer ' optimizer ' not supported'])
+    end
     x0 = x(1:end-3);
     lambda0 = x(end-2);
     mu0 = x(end-1);
     thetaMaster = x(end);
     disp(['Scenario Observations: ' num2str(numscen)])
     disp(['Exit flag is ' num2str(exitflag) '.'])
-    disp(['lambda0 = ' num2str(lambda0) ', bound = ' num2str(upperBound(end-2))])
-    disp(['mu0 = ' num2str(mu0) ', bound = ' num2str(upperBound(end-1))])
     
 %     Solve Subproblems
     [indivScens slope intercept] = solve_scens(x0,numscen);
@@ -152,9 +181,9 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
     
     disp(' ')
 end
-if zlower > zupper
-    error('zlower > zupper')
-end
+% if zlower > zupper
+%     error('zlower > zupper')
+% end
 pmle = numscen./N;
 disp(['Time elapsed = ' num2str(toc)])
 read_results(x0,c,periods1)
