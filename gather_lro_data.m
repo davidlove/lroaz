@@ -1,4 +1,4 @@
-function gather_lro_data_version4()
+function gather_lro_data_version5(saveFileName)
 %gather_lro_data_version2 loops over lroaz to get lots of data
 %   Version 2 begins user lroaz_version15 (or later versions) 
 %   that might be useful in gettting rid of the mysterious
@@ -7,39 +7,50 @@ function gather_lro_data_version4()
 %   mitigate the possibility of bugs in the solution code.
 %   Version 4 uses the two best previous solutions to try to 
 %   get around the problems with linprog
+%   Version 5 integrates the first run into the loop to 
+%   help minimize bugs in this code
 
+if nargin < 1
+%     contBroken = false;
+    dgp = .01;
+    gp = dgp:dgp:1-dgp;
+    saveFileName = 'saved_variables.mat';
+    iiSet = 1:length(gp);
+else
+%     contBroken = true;
+    contLoad = load(saveFileName);
+    gp = contLoad.gp;
+    pWorst = contLoad.pWorst;
+    x = contLoad.x;
+    lambda = contLoad.lambda;
+    mu = contLoad.mu;
+    scenCosts = contLoad.scenCosts;
+    zCost = contLoad.zCost;
+    likelihood = contLoad.likelihood;
+    exitFlags = contLoad.exitFlags;
+    numRuns = contLoad.numRuns;
+    iiSet = find(exitFlags~=1);
+end
+    
 tStart = tic;
 
-dgp = .01;
-gp = 0.42:dgp:1-dgp;
-% gp = .02;
-
-[p1,x1,l1,m1,s1,z1,r1,eF,n] = solve_lroaz(gp(1));
-
-pWorst = zeros(length(p1),length(gp));
-x = zeros(length(x1),length(gp));
-lambda = zeros(length(l1),length(gp));
-mu = zeros(length(m1),length(gp));
-scenCosts = zeros(length(s1),length(gp));
-zCost = zeros(length(z1),length(gp));
-likelihood = zeros(length(r1),length(gp));
-exitFlags = zeros(1,length(gp));
-numRuns = zeros(1,length(gp));
-
-pWorst(:,1) = p1';
-x(:,1) = x1;
-lambda(:,1) = l1;
-mu(:,1) = m1;
-scenCosts(:,1) =s1;
-zCost(:,1) = z1;
-likelihood(:,1) = r1;
-exitFlags(1) = eF;
-numRuns(1) = n;
-
-for ii = 2:length(gp)
+for ii = iiSet
     disp(' ')
     disp(['gp = ' num2str(gp(ii))])
     [p1,x1,l1,m1,s1,z1,r1,eF,n] = solve_lroaz(gp(ii));
+    
+    if ii == 1
+        pWorst = zeros(length(p1),length(gp));
+        x = zeros(length(x1),length(gp));
+        lambda = zeros(length(l1),length(gp));
+        mu = zeros(length(m1),length(gp));
+        scenCosts = zeros(length(s1),length(gp));
+        zCost = zeros(length(z1),length(gp));
+        likelihood = zeros(length(r1),length(gp));
+        exitFlags = zeros(1,length(gp));
+        numRuns = zeros(1,length(gp));
+    end
+    
     pWorst(:,ii) = p1';
     x(:,ii) = x1;
     lambda(:,ii) = l1;
@@ -50,16 +61,16 @@ for ii = 2:length(gp)
     exitFlags(ii) = eF;
     numRuns(ii) = n;
 
-    save('saved_variables.mat','gp','pWorst','x','lambda','mu', ...
-        'scenCosts','zCost','likelihood','exitFlags','n')
+    save(saveFileName,'gp','pWorst','x','lambda','mu', ...
+        'scenCosts','zCost','likelihood','exitFlags','numRuns')
 end
 
 time = toc(tStart);
 disp(['Total time: ' num2str(time)])
 disp(['Average solution time: ' num2str(time/length(gp))])
 
-save('saved_variables.mat','gp','pWorst','x','lambda','mu', ...
-    'scenCosts','zCost','likelihood','exitFlags','numRuns')
+% save('saved_variables.mat','gp','pWorst','x','lambda','mu', ...
+%     'scenCosts','zCost','likelihood','exitFlags','numRuns')
 
 
 function [p1,x1,l1,m1,s1,z1,r1,exitFlag,num] = solve_lroaz(gp)
@@ -92,24 +103,3 @@ end
 x1 = solnBest(1:end-3);
 l1 = solnBest(end-2);
 m1 = solnBest(end-1);
-
-% [exitflag,p1,x1,l1,m1,s1,z1,r1] = lroaz_version15(gp);
-% zPrev = z1;
-% num = 1;
-% totalnum = 10;
-% while exitflag ~= 1 && num < totalnum
-%     num = num + 1;
-%     zPrev = z1;
-%     disp(' ')
-%     disp(['gammaprime = ' num2str(gp) ', num = ' num2str(num) ...
-%         ' of ' num2str(totalnum)])
-%     disp(' ')
-%     [exitflag,p1,x1,l1,m1,s1,z1,r1] = lroaz_version15(gp,[x1;l1;m1;0]);
-%     disp(' ')
-%     disp(['z nonincreasing: ' num2str(zPrev >= z1) ...
-%         ', z decreasing: ' num2str(zPrev > z1) ])
-%     disp(' ')
-%     if zPrev == z1
-%         break
-%     end
-% end
