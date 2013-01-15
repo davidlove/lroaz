@@ -1,15 +1,15 @@
-function [exitflag,pWorst,xBest,lambdaBest,muBest, ...
+function [exitflag,pWorst,solnBest,soln2Best, ...
     indivScens,zupper,relLikelihood] =  ...
-    lroaz_version15(gammaprime, x, nfactor, periods1)
+    lroaz_version16(gammaprime, inputInitGuess, nfactor, periods1)
 
-clear get_stage_vectors
+% clear get_stage_vectors
 
 if nargin < 4
     periods1 = 10;
     if nargin < 3
         nfactor = 5;
         if nargin < 1
-            gammaprime = 0.2;
+            gammaprime = 0.5;
         end
     end
 end
@@ -19,6 +19,8 @@ end
 % I have added some input and output arguments to version 13
 % Version 14: simply quit if linprog is unable to optimize the primal
 % problem, do no throw an error
+% Version 16: return both best and second-best solutions found so that
+% gather_lro_data might work a bit better
 
 % optimizer = 'fmincon';
 optimizer = 'linprog';
@@ -44,10 +46,10 @@ Period = 41;
 
 [c,A,Rhs,l,u] = get_stage_vectors(1,1, ...
     ConnectionsFile,cellInputFile,Period,periods1);
-if nargin < 2
+if nargin < 2 || isempty(inputInitGuess)
     [x0 initCost] = linprog( c, [], [], A, Rhs, l, u );
 else
-    x0 = x(1:end-3);
+    x0 = inputInitGuess(1:end-3);
     initCost = c*x0;
     assert(length(x0) == size(A,2));
 end
@@ -84,10 +86,10 @@ indivScens = scale*indivScens;
 
 % Initialize everything
 % x0 = -1;
-if nargin < 2
+if nargin < 2 || isempty(inputInitGuess)
     lambda0 = 1;
 else
-    lambda0 = x(end-2)*scale;
+    lambda0 = inputInitGuess(end-2)*scale;
 end
 % lambdaBest = lambda0;
 zlower = -Inf;
@@ -99,10 +101,10 @@ feasRhs = [];
 feasSlope = [];
 feasInt = [];
 
-if nargin < 2
+if nargin < 2 || isempty(inputInitGuess)
     mu0 = find_mu(lambda0, numscen,indivScens);
 else
-    mu0 = x(end-1)*scale;
+    mu0 = inputInitGuess(end-1)*scale;
 end
 % muBest = mu0;
 
@@ -115,9 +117,11 @@ notPrimalSolnFound = true;
 % Get the initial objective cut
 [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
 zupper = opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar);
+solnBest = [x0;lambda0;mu0;theta0];
 
 % Variables for trust region
-trustRegion = max(abs([x0;lambda0;mu0;theta0]));
+% trustRegion = max(abs([x0;lambda0;mu0;theta0]));
+trustRegion = max(abs(x0));
 rhoBound = 1/4;
 scaleDown = 1/4;
 scaleUp = 3;
@@ -285,6 +289,8 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
         lambdaBest = lambda0;
         muBest = mu0;
         thetaBest = theta0;
+        soln2Best = solnBest;
+        solnBest = [xBest; lambdaBest; muBest; thetaBest];
     end
     if exist('lambdaBest','var')
         pWorst = lambdaBest*numscen./(muBest-indivScens');
@@ -310,6 +316,9 @@ if ~exist('lambdaBest','var')
     lambdaBest = lambda0;
     muBest = mu0;
     xBest = x0;
+    thetaBest = theta0;
+    soln2Best = [];
+%     solnBest = [xBest; lambdaBest; muBest; thetaBest];
 end
 
 % Return costs to original scaling
@@ -319,6 +328,10 @@ lambdaBest = lambdaBest/scale;
 muBest = muBest/scale;
 zlower = zlower/scale;
 zupper = zupper/scale;
+solnBest(end-2:end) = solnBest(end-2:end)/scale;
+if ~isempty(soln2Best)
+    soln2Best(end-2:end) = soln2Best(end-2:end)/scale;
+end
 relLikelihood = exp(sum(numscen.*(log(pWorst)-log(pmle))));
 corRelLikelihood = exp(sum(numscen.*(log(pWorst./sum(pWorst))-log(pmle))));
 
@@ -338,7 +351,8 @@ disp(['zlower = ' num2str(zlower) ', zupper = ' num2str(zupper)])
 disp(['Relative error = ' num2str((zupper - zlower)/min(abs(zupper),abs(zlower)))])
 disp(['Tolerance = ' num2str(tolerance)])
 if zlower > zupper
-    error('zlower > zupper')
+    exitflag = 17;
+%     error('zlower > zupper')
 end
 
 % ------------------------------------------------------------------------
