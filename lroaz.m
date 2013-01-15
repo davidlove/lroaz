@@ -1,9 +1,20 @@
-function lroaz_version12()
+function [pWorst,x0,lambda0,mu0,indivScens,zupper] = lroaz_version13(gammaprime, nfactor, periods1)
 
-clear all
+clear get_stage_vectors
+
+if nargin < 3
+    periods1 = 10;
+    if nargin < 2
+        nfactor = 5;
+        if nargin < 1
+            gammaprime = 0.19;
+        end
+    end
+end
 
 % lroaz is an attempt to make an LRO for the model of Tucson that I have.
 % It is based on lroslp_version12.
+% I have added some input and output arguments to this version
 
 % optimizer = 'fmincon';
 optimizer = 'linprog';
@@ -18,13 +29,13 @@ cellInputFile = { ...
     };
 
 % Problem Parameters
-numscen = 5*ones(size(cellInputFile));
+numscen = nfactor*ones(size(cellInputFile));
 N = sum(numscen);
 % The constant inside the log is a number less than 1
-gammaprime = 0.9;
+% gammaprime = 0.95;
 Nbar = N*(log(N)-1) - log(gammaprime);
 Period = 41;
-periods1 = 10;
+% periods1 = 10;
 % c = 1;
 
 [c,A,Rhs,l,u] = get_stage_vectors(1,1, ...
