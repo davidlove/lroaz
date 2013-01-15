@@ -1,4 +1,4 @@
-function [pWorst,x0,lambda0,mu0,indivScens,zupper] = lroaz_version13(gammaprime, nfactor, periods1)
+function [pWorst,x0,lambda0,mu0,indivScens,zupper] = lroaz_version14(gammaprime, nfactor, periods1)
 
 clear get_stage_vectors
 
@@ -14,7 +14,9 @@ end
 
 % lroaz is an attempt to make an LRO for the model of Tucson that I have.
 % It is based on lroslp_version12.
-% I have added some input and output arguments to this version
+% I have added some input and output arguments to version 13
+% Version 14: simply quit if linprog is unable to optimize the primal
+% problem, do no throw an error
 
 % optimizer = 'fmincon';
 optimizer = 'linprog';
@@ -141,6 +143,9 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
                 [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
                 lowerBound, upperBound, ...
                 initGuess, options);
+            if exitflag == -3
+                break
+            end
         case 'cvx'
             linobj = linear_obj(c,Nbar);
             cvx_begin quiet
