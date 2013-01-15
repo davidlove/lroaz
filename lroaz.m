@@ -5,7 +5,7 @@ function [exitflag,pWorst,solnBest,soln2Best, ...
 % clear get_stage_vectors
 
 if nargin < 4
-    periods1 = 10;
+    periods1 = 5;
     if nargin < 3
         nfactor = 5;
         if nargin < 1
