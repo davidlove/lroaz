@@ -1,9 +1,9 @@
-function lroaz_version8()
+function lroaz_version10()
 
 clear all
 
 % lroaz is an attempt to make an LRO for the model of Tucson that I have.
-% It is based on lroslp_version8.
+% It is based on lroslp_version10.
 
 ConnectionsFile = 'all_scenarios/5/Connections.xlsx';
 cellInputFile = { ...
@@ -25,7 +25,7 @@ periods1 = 6;
 
 [c,A,Rhs,l,u] = get_stage_vectors(1,1, ...
     ConnectionsFile,cellInputFile,Period,periods1);
-x0 = linprog( c, [], [], A, Rhs, l, u );
+[x0 initCost] = linprog( c, [], [], A, Rhs, l, u );
 A = [A zeros(size(A,1),3)];
 
 % Initialize everything
@@ -54,11 +54,23 @@ tic
 
 % Solve all the subproblems & find a good starting mu
 [indivScens slope intercept] = solve_scens(x0,numscen);
+
+% Rescaling code:
+scale = rescale_problem(initCost,indivScens,numscen,Nbar);
+get_stage_vectors('scale',scale);
+c = get_stage_vectors(1);
+indivScens = scale*indivScens;
+
 mu0 = find_mu(lambda0, numscen,indivScens);
+
+% Initialize variables for exit conditions
+pWorst = lambda0*numscen./(mu0-indivScens');
+tolerance = 1e-6;
+notPrimalSolnFound = true;
 
 % Get the initial objective cut
 [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
-while zupper - zlower >= 0.000001*min(abs(zupper),abs(zlower))
+while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
 %     Update the matrices of objective and feasibility cuts
     objA = [objA; slope, -1];
     objRhs = [objRhs; -intercept];
@@ -69,30 +81,37 @@ while zupper - zlower >= 0.000001*min(abs(zupper),abs(zlower))
 %     Solve the master problem and get the solution
     %     Format for decision variables: [x lambda mu theta]
     initGuess = [x0; lambda0; mu0; theta0];
+    lowerBound = [l;0;scenLowBnd;-Inf];
+    upperBound = [u;max(1,10*lambda0);10*mu0;Inf];
     
     disp([ num2str(size(objA,1)) ' objective cuts, ' ...
         num2str(size(feasA,1)) ' feasibility cuts'])
     toc
     [x,~,exitflag] = fmincon( @(x) opt_obj(x,c,N,Nbar), initGuess, ...
         [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
-        [l;0;scenLowBnd;-Inf], [u;Inf;10*mu0;Inf], [], options );
+        lowerBound, upperBound, [], options );
 %     linobj = linear_obj(c,Nbar);
 %     [x,~,exitflag] = linprog( linobj, ...
 %         [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
-%         [l;0;scenLowBnd;-Inf], [u;Inf;10*mu0;Inf], ...
+%         lowerBound, upperBound, ...
 %         initGuess, options);
     x0 = x(1:end-3);
     lambda0 = x(end-2);
     mu0 = x(end-1);
     thetaMaster = x(end);
+    disp(['Scenario Observations: ' num2str(numscen)])
+    disp(['Exit flag is ' num2str(exitflag) '.'])
+    disp(['lambda0 = ' num2str(lambda0) ', bound = ' num2str(upperBound(end-2))])
+    disp(['mu0 = ' num2str(mu0) ', bound = ' num2str(upperBound(end-1))])
     
 %     Solve Subproblems
     [indivScens slope intercept] = solve_scens(x0,numscen);
     
 %     If mu feasible, update the lower bount on z
     [hMax hIndex] = max(indivScens);
-    mu_feas = mu0 > hMax;
-    if ~mu_feas
+    muFeasible = mu0 > hMax;
+    trustRegionInterior = (lambda0 < 0.9*upperBound(end-2)) & (mu0 < 0.9*(upperBound(end-1)));
+    if ~muFeasible
         %         If mu infeasible, generate feasibility cuts and find feasible mu
         [feasSlope feasInt] = get_feas_cut(slope,intercept,hIndex);
         mu0 = find_mu(lambda0, numscen,indivScens);
@@ -103,10 +122,9 @@ while zupper - zlower >= 0.000001*min(abs(zupper),abs(zlower))
         feasInt = [];
     end
     
-    disp(['Exit flag is ' num2str(exitflag) '.'])
     switch exitflag
         case 1
-            if mu_feas
+            if muFeasible && trustRegionInterior
                 zlower = get_first_stage_obj(x0,lambda0,mu0,c,N,Nbar)+thetaMaster;
                 disp('Feasible solution, updating zlower')
             end
@@ -119,8 +137,17 @@ while zupper - zlower >= 0.000001*min(abs(zupper),abs(zlower))
     
 %     Update the upper bound on z and get the next cuts
     [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
-    if opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar) < zupper
+    if opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar) < zupper && notPrimalSolnFound
         zupper = opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar);
+        disp('New best solution, updating zupper')
+    end
+    pWorst = lambda0*numscen./(mu0-indivScens');
+    disp(['Total probability = ' num2str(sum(pWorst))])
+    if notPrimalSolnFound
+        notPrimalSolnFound = zupper - zlower >= tolerance*min(abs(zupper),abs(zlower));
+        disp(['notPrimalSolnFound = ' num2str(notPrimalSolnFound)])
+    else
+        disp('Primal tolerances already reached')
     end
     
     disp(' ')
@@ -128,19 +155,19 @@ end
 if zlower > zupper
     error('zlower > zupper')
 end
-pworst = lambda0*numscen./(mu0-indivScens');
 pmle = numscen./N;
 disp(['Time elapsed = ' num2str(toc)])
 read_results(x0,c,periods1)
 disp(['lambda = ' num2str(lambda0) ', mu = ' num2str(mu0)])
+disp(['First-stage cost = ' num2str(c*x0)])
 disp(['Scenario costs = ' num2str(indivScens')])
-disp(['Worst-case probabilities = ' num2str(pworst)])
-disp(['Total Probability = ' num2str(sum(pworst))])
+disp(['Worst-case probabilities = ' num2str(pWorst)])
+disp(['Total Probability = ' num2str(sum(pWorst))])
 disp(['Gamma prime = ' num2str(gammaprime)])
 disp(['Worst-case relative likelihood = ' ...
-    num2str( exp(sum(numscen.*(log(pworst)-log(pmle)))) )])
+    num2str( exp(sum(numscen.*(log(pWorst)-log(pmle)))) )])
 disp(['Worst-case corrected relative likelihood = ' ...
-    num2str( exp(sum(numscen.*(log(pworst./sum(pworst))-log(pmle)))) )])
+    num2str( exp(sum(numscen.*(log(pWorst./sum(pWorst))-log(pmle)))) )])
 disp(['zlower = ' num2str(zlower) ', zupper = ' num2str(zupper)])
 
 % ------------------------------------------------------------------------
