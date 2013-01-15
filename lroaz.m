@@ -1,13 +1,15 @@
-function [pWorst,x0,lambda0,mu0,indivScens,zupper] = lroaz_version14(gammaprime, nfactor, periods1)
+function [exitflag,pWorst,xBest,lambdaBest,muBest, ...
+    indivScens,zupper,relLikelihood] =  ...
+    lroaz_version15(gammaprime, x, nfactor, periods1)
 
 clear get_stage_vectors
 
-if nargin < 3
+if nargin < 4
     periods1 = 10;
-    if nargin < 2
+    if nargin < 3
         nfactor = 5;
         if nargin < 1
-            gammaprime = 0.19;
+            gammaprime = 0.2;
         end
     end
 end
@@ -42,20 +44,15 @@ Period = 41;
 
 [c,A,Rhs,l,u] = get_stage_vectors(1,1, ...
     ConnectionsFile,cellInputFile,Period,periods1);
-[x0 initCost] = linprog( c, [], [], A, Rhs, l, u );
+if nargin < 2
+    [x0 initCost] = linprog( c, [], [], A, Rhs, l, u );
+else
+    x0 = x(1:end-3);
+    initCost = c*x0;
+    assert(length(x0) == size(A,2));
+end
+% xBest = x0;
 A = [A zeros(size(A,1),3)];
-
-% Initialize everything
-% x0 = -1;
-lambda0 = 1;
-zlower = -Inf;
-zupper = Inf;
-objA = [];
-objRhs = [];
-feasA = [];
-feasRhs = [];
-feasSlope = [];
-feasInt = [];
 
 switch optimizer
     case 'fmincon'
@@ -64,6 +61,8 @@ switch optimizer
             'GradObj','on');
     case 'linprog'
         options = optimset('MaxIter',85);
+%         options = optimset('MaxIter',10*max(size(A,2),40+length(u(u<Inf))), ...
+%             'LargeScale','Off');
     case 'cvx'
         
     otherwise
@@ -83,15 +82,39 @@ get_stage_vectors('scale',scale);
 c = get_stage_vectors(1);
 indivScens = scale*indivScens;
 
-mu0 = find_mu(lambda0, numscen,indivScens);
+% Initialize everything
+% x0 = -1;
+if nargin < 2
+    lambda0 = 1;
+else
+    lambda0 = x(end-2)*scale;
+end
+% lambdaBest = lambda0;
+zlower = -Inf;
+zupper = Inf;
+objA = [];
+objRhs = [];
+feasA = [];
+feasRhs = [];
+feasSlope = [];
+feasInt = [];
+
+if nargin < 2
+    mu0 = find_mu(lambda0, numscen,indivScens);
+else
+    mu0 = x(end-1)*scale;
+end
+% muBest = mu0;
 
 % Initialize variables for exit conditions
+% pWorst = lambdaBest*numscen./(muBest-indivScens');
 pWorst = lambda0*numscen./(mu0-indivScens');
 tolerance = 1e-5;
 notPrimalSolnFound = true;
 
 % Get the initial objective cut
 [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
+zupper = opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar);
 
 % Variables for trust region
 trustRegion = max(abs([x0;lambda0;mu0;theta0]));
@@ -143,7 +166,7 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
                 [objA; feasA], [objRhs; feasRhs], A, Rhs, ...
                 lowerBound, upperBound, ...
                 initGuess, options);
-            if exitflag == -3
+            if exitflag == -3 || exitflag == -4 || exitflag == -2
                 break
             end
         case 'cvx'
@@ -169,12 +192,12 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
         otherwise
             error(['Optimizer ' optimizer ' not supported'])
     end
+    disp(['Scenario Observations: ' num2str(numscen)])
+    disp(['Exit flag is ' num2str(exitflag) '.'])
     x0 = x(1:end-3);
     lambda0 = x(end-2);
     mu0 = x(end-1);
     thetaMaster = x(end);
-    disp(['Scenario Observations: ' num2str(numscen)])
-    disp(['Exit flag is ' num2str(exitflag) '.'])
     
 %     Solve Subproblems
     [indivScens slope intercept] = solve_scens(x0,numscen);
@@ -258,9 +281,20 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
             newSolution
         zupper = opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar);
         disp(['New best solution, updating zupper = ' num2str(zupper)])
+        xBest = x0;
+        lambdaBest = lambda0;
+        muBest = mu0;
+        thetaBest = theta0;
     end
-    pWorst = lambda0*numscen./(mu0-indivScens');
-    disp(['Total probability = ' num2str(sum(pWorst))])
+    if exist('lambdaBest','var')
+        pWorst = lambdaBest*numscen./(muBest-indivScens');
+    else
+        pWorst = lambda0*numscen./(mu0-indivScens');
+    end
+    disp(['Primal tolerance = ' ...
+        num2str( (zupper - zlower)/min(abs(zupper),abs(zlower)) ) ...
+        ', Probability tolerance = ' ...
+        num2str( abs(1-sum(pWorst)) )])
     if notPrimalSolnFound
         notPrimalSolnFound = zupper - zlower >= tolerance*min(abs(zupper),abs(zlower));
         disp(['notPrimalSolnFound = ' num2str(notPrimalSolnFound)])
@@ -272,26 +306,34 @@ while notPrimalSolnFound || abs(1-sum(pWorst)) > 1e-3
 end
 pmle = numscen./N;
 
+if ~exist('lambdaBest','var')
+    lambdaBest = lambda0;
+    muBest = mu0;
+    xBest = x0;
+end
+
 % Return costs to original scaling
 c = c/scale;
 indivScens = indivScens/scale;
-lambda0 = lambda0/scale;
-mu0 = mu0/scale;
+lambdaBest = lambdaBest/scale;
+muBest = muBest/scale;
 zlower = zlower/scale;
 zupper = zupper/scale;
+relLikelihood = exp(sum(numscen.*(log(pWorst)-log(pmle))));
+corRelLikelihood = exp(sum(numscen.*(log(pWorst./sum(pWorst))-log(pmle))));
 
 disp(['Time elapsed = ' num2str(toc)])
 read_results(x0,c,periods1)
-disp(['lambda = ' num2str(lambda0) ', mu = ' num2str(mu0)])
-disp(['First-stage cost = ' num2str(c*x0)])
+disp(['lambda = ' num2str(lambdaBest) ', mu = ' num2str(muBest)])
+disp(['First-stage cost = ' num2str(c*xBest)])
 disp(['Scenario costs = ' num2str(indivScens')])
 disp(['Worst-case probabilities = ' num2str(pWorst)])
 disp(['Total Probability = ' num2str(sum(pWorst))])
 disp(['Gamma prime = ' num2str(gammaprime)])
 disp(['Worst-case relative likelihood = ' ...
-    num2str( exp(sum(numscen.*(log(pWorst)-log(pmle)))) )])
+    num2str( relLikelihood )])
 disp(['Worst-case corrected relative likelihood = ' ...
-    num2str( exp(sum(numscen.*(log(pWorst./sum(pWorst))-log(pmle)))) )])
+    num2str( corRelLikelihood )])
 disp(['zlower = ' num2str(zlower) ', zupper = ' num2str(zupper)])
 disp(['Relative error = ' num2str((zupper - zlower)/min(abs(zupper),abs(zlower)))])
 disp(['Tolerance = ' num2str(tolerance)])

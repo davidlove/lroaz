@@ -1,10 +1,21 @@
-function gather_lro_data()
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function gather_lro_data_version2()
+%gather_lro_data_version2 loops over lroaz to get lots of data
+%   Version 2 begins user lroaz_version15 (or later versions) 
+%   that might be useful in gettting rid of the mysterious
+%   unboundedness errros.
 
-gp = 0.1:0.01:0.95;
+tStart = tic;
 
-[p1,x1,l1,m1,s1,z1] = lroaz_version13(gp(1));
+dgp = .5;
+% gp = dgp:dgp:1-dgp;
+gp = .15:.2:.95;
+
+[exitflag,p1,x1,l1,m1,s1,z1] = lroaz_version15(gp(1));
+num = 0;
+while exitflag ~= 1 && num < 20
+    num = num + 1;
+    [exitflag,p1,x1,l1,m1,s1,z1] = lroaz_version15(gp(ii),[x1;l1;m1;0]);
+end
 
 pWorst = zeros(length(p1),length(gp));
 x = zeros(length(x1),length(gp));
@@ -21,9 +32,14 @@ scenCosts(:,1) =s1;
 zCost(:,1) = z1;
 
 for ii = 2:length(gp)
-    disp('')
+    disp(' ')
     disp(['gp = ' num2str(gp(ii))])
-    [p1,x1,l1,m1,s1,z1] = lroaz_version14(gp(ii));
+    [exitflag,p1,x1,l1,m1,s1,z1] = lroaz_version15(gp(ii));
+    num = 0;
+    while exitflag ~= 1 && num < 20
+        num = num + 1;
+        [exitflag,p1,x1,l1,m1,s1,z1] = lroaz_version15(gp(ii),[x1;l1;m1;0]);
+    end
     pWorst(:,ii) = p1';
     x(:,ii) = x1;
     lambda(:,ii) = l1;
@@ -32,6 +48,8 @@ for ii = 2:length(gp)
     zCost(:,ii) = z1;
 end
 
-
+time = toc(tStart);
+disp(['Total time: ' num2str(time)])
+disp(['Average solution time: ' num2str(time/length(gp))])
 
 save('saved_variables.mat','pWorst','x','lambda','mu','scenCosts','zCost')
