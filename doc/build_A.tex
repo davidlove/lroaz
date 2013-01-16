@@ -1,0 +1,122 @@
+\documentclass[11pt]{article}
+
+\usepackage{default}
+\usepackage{fullpage}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{algorithm}
+% \usepackage{algorithmic}
+\usepackage{algpseudocode}
+
+\pagestyle{fancy}
+\setlength{\headheight}{16pt}
+\rhead{\today}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+
+\newcommand{\F}{{\cal F}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\p}[1]{\P \left\{ #1 \right\}}
+\newcommand{\e}[1]{\E \left[ #1 \right]}
+\newcommand{\ee}[2]{E_{#1} \left[ #2 \right]}
+\newcommand{\var}[1]{\mbox{Var} \left( #1 \right)}
+\newcommand{\cov}[1]{\mbox{Cov} \left( #1 \right)}
+\newcommand{\cor}[1]{\mbox{Corr} \left( #1 \right)}
+
+% Notation for my attempt at formulating LRSLP-2
+\newcommand{\qt}{\tilde{q}}
+\newcommand{\Dt}{\tilde{D}}
+\newcommand{\dt}{\tilde{d}}
+\newcommand{\Bt}{\tilde{B}}
+
+\newcommand{\xs}{x^*}
+\newcommand{\xh}{\hat{x}}
+\newcommand{\lh}{\hat{\lambda}}
+\newcommand{\mh}{\hat{\mu}}
+
+\newcommand{\st}{\mbox{s.t.}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+% For OMRP:
+\newcommand{\gb}{\bar{G}}
+\newcommand{\gbb}{\bar{\gb}}
+\newcommand{\db}{\bar{D}}
+\newcommand{\dbb}{\bar{\db}}
+\newcommand{\xit}{\xi}  %% CHANGED THIS TO BE WITHOUT TILDE! 
+\newcommand{\xiti}{\xit^i}
+
+\newtheorem{theorem}{Theorem}
+
+\bibliographystyle{plain}
+
+% Commands for build_A.m variable names
+\newcommand{\buildA}{\texttt{build\_A.m}}
+\newcommand{\A}{\texttt{A}}
+\newcommand{\Ast}{\texttt{A\_st}}
+\newcommand{\xr}{\texttt{xr}}
+\newcommand{\xb}{\texttt{xb}}
+\newcommand{\xe}{\texttt{xe}}
+\newcommand{\xa}{\texttt{xa}}
+\newcommand{\xu}{\texttt{xu}}
+\newcommand{\sourceN}{\texttt{sourceN}}
+\newcommand{\userN}{\texttt{userN}}
+\newcommand{\ST}{\texttt{ST}}
+
+\begin{document}
+
+The basic constraint matrices constructed in \buildA, \A\ and \Ast, are composed of of a series of submatrices, as
+\[
+	\A = 
+	\left(
+	\begin{array}{ccccc}
+		A &   S & R   & -I & 0 \\
+		A_b & 0 & R_b &  0 & 0 \\
+		L &   0 & 0   &  I & 0
+	\end{array}
+	\right)
+\]
+and
+\[
+	\Ast = 
+	\left(
+	\begin{array}{ccccc}
+		A' & S'   & 0 & 0 & 0 \\
+		0  & S'_b & 0 & 0 & 0 \\
+		L' & 0    & 0 & 0 & 0
+	\end{array}
+	\right).
+\]
+These matrices have sizes and index variables given in the following tables.  The horizontal and vertical labels indicate first the number of rows or columns, with the variable used to index each section in parentheses. The table for \A:
+\begin{center}
+	\begin{tabular}{r|c|c|c|c|c}
+		& $\sourceN\cdot\userN$ (\xa) & \sourceN (\xu) & \sourceN ($\xu + \sourceN$) & \userN () & $1$ () \\
+		\hline
+		\userN (\xr) & $A$   & $S$ & $R$   & $-I$ & $0$ \\
+		\ST (\xb)    & $A_b$ & $0$ & $R_b$ & $0$  & $0$ \\
+		\userN (\xr) & $L$   & $0$ & $0$   & $I$  & $0$ \\
+		\hline
+	\end{tabular}
+\end{center}
+
+And for \Ast:
+\begin{center}
+	\begin{tabular}{r|c|c|c|c|c}
+		& $\sourceN\cdot\userN$ (\xa) & \sourceN (\xu) & \sourceN ($\xu + \sourceN$) & \userN () & $1$ () \\
+		\hline
+		\userN (\xr) & $A'$  & $S'$    & $0$ & $0$ & $0$ \\
+		\ST (\xb)    & $0$   & $S'_b$  & $0$ & $0$ & $0$ \\
+		\userN (\xr) & $L'$  & $0$     & $0$ & $0$ & $0$ \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\end{document}
