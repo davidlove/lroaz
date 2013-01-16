@@ -177,30 +177,25 @@ for xd = 1:sourceN % For each source term
     source_type = find(xd <= cumS,1,'first');
     %% test new indexing technique
     
-    if source_type == 1
-        gw_row = gw_row + 1;
-    end
-    
-    if source_type == 3
-        sw_row = sw_row + 1;
-    end
-    
-    if source_type == 2
-        if xd <= gwN + xq
-            xn = xn + 1;
-        else
-            xn = 1;
-        end
-        
-    elseif source_type == 4
-        xo = xo + 1;
-        
-    elseif source_type == 6
-        if xd <= gwN + wwtpN + swN + wtpN + dmyN + xs
-            xp = xp +1;
-        else
-            xp = 1;
-        end
+    switch source_type
+        case 1
+            gw_row = gw_row + 1;
+        case 2
+            if xd <= gwN + xq
+                xn = xn + 1;
+            else
+                xn = 1;
+            end
+        case 3
+            sw_row = sw_row + 1;
+        case 4
+            xo = xo + 1;
+        case 6
+            if xd <= gwN + wwtpN + swN + wtpN + dmyN + xs
+                xp = xp +1;
+            else
+                xp = 1;
+            end
     end
     
     for xr = 1:userN % For each user
