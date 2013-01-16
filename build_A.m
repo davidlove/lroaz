@@ -150,6 +150,9 @@ xo = 0;
 xp = 0;
 Loss_percentage = 0.011;
 
+gw_row = userN;
+sw_row = userN + gwN;
+
 % Centralized facilities
 index = find(Zones==1 & user_type==2);
 xq = length(index); % reclamation
@@ -169,10 +172,18 @@ for xd = 1:sourceN % For each source term
     a1 = sourceID(xd);
     a1 = strcmp(userID,a1);
     a1 = a1==1;
-    
     a1 = Zones(a1);
     
     source_type = find(xd <= cumS,1,'first');
+    %% test new indexing technique
+    
+    if source_type == 1
+        gw_row = gw_row + 1;
+    end
+    
+    if source_type == 3
+        sw_row = sw_row + 1;
+    end
     
     if source_type == 2
         if xd <= gwN + xq
@@ -223,14 +234,14 @@ for xd = 1:sourceN % For each source term
                     A(xr,xa) = 1; % user inflow
                     A(xe,xa) = -Loss_percentage;
                     Nr(xe,1) = strcat(xh,'-L');
-                    A(xb,xa) = -1; % source outflow
-                    Nr(xb,1) = xg; % Source ID
+                    A(gw_row,xa) = -1; % source outflow
+                    Nr(gw_row,1) = xg; % Source ID
                     
                     % storage
-                    A(xb,xu) = -1; % source end of year storage
+                    A(gw_row,xu) = -1; % source end of year storage
                     A(length(Nr),length(A)) = -1; % total potable storage
                     Nc(1,xu) = strcat(xg,'-strg'); % source loss ID
-                    A_st(xb,xu) = 1; % next period storage carry over
+                    A_st(gw_row,xu) = 1; % next period storage carry over
                     
                     % wwtp source conditions
                 case 2
@@ -246,15 +257,19 @@ for xd = 1:sourceN % For each source term
                         A(xr,xa) = 0.95; % percent of total supply to NP node (5% lost to solids)
                         A(xe,xa) = -Loss_percentage;
                         Nr(xe,1) = strcat(xh,'-L');
-                        A(index(xn),xu+sourceN) = -1;% source release to surface water
+                        A(index(xn),xu+sourceN) = -1;% source outflow
                         Nc(1,xu+sourceN) = strcat(xg,'-release');
                         
                     elseif user_type(xr) == 6 % recharge
                         A(index(xn),xa) = -1; % source outflow
-                        A_st(xr,xa) = 0.95; % percent of total supply to NP node (5% lost to solids)
+                        if strncmpi(userID(xr),'RO',2) == 1
+                            A_st(xr,xa) = 0.95*0.75; % percent of supply to user (5% lost to solids, plus 25% lost during RO)
+                        else
+                            A_st(xr,xa) = 0.95; % percent of supply to user (5% lost to solids)
+                        end
                         A_st(xe,xa) = -Loss_percentage;
                         Nr(xe,1) = strcat(xh,'-L');
-                        A(index(xn),xu+sourceN) = -1;% source release to surface water
+                        A(index(xn),xu+sourceN) = -1;% source outflow
                         Nc(1,xu+sourceN) = strcat(xg,'-release');
                         
                     else    % release
@@ -276,12 +291,12 @@ for xd = 1:sourceN % For each source term
                         A_st(xr,xa) = 1;
                         A_st(xe,xa) = -Loss_percentage;
                     end
-                    A(xb,xa) = -1; % source outflow
+                    A(sw_row,xa) = -1; % source outflow
                     
                     Nr(xe,1) = strcat(xh,'-L');
-                    A(xb,xu+sourceN) = -1;% downstream flow
+                    A(sw_row,xu+sourceN) = -1;% downstream flow
                     Nc(1,xu+sourceN) = strcat(xg,'-DSflow');
-                    Nr(xb,1) = xg;
+                    Nr(sw_row,1) = xg;
                     
                     % wtp conditions/ reservoir
                 case 4                    
