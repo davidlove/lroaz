@@ -70,10 +70,14 @@
 \newcommand{\sourceN}{\texttt{sourceN}}
 \newcommand{\userN}{\texttt{userN}}
 \newcommand{\ST}{\texttt{ST}}
+\newcommand{\sw}{\texttt{sw\_row}}
+\newcommand{\gw}{\texttt{gw\_row}}
 
 \begin{document}
 
-The basic constraint matrices constructed in \buildA, \A\ and \Ast, are composed of of a series of submatrices, as
+\section{Constraint building code as its written}
+
+The basic constraint matrices constructed in $\buildA$, $\A$ and $\Ast$, are composed of of a series of submatrices, as
 \[
 	\A = 
 	\left(
@@ -82,9 +86,9 @@ The basic constraint matrices constructed in \buildA, \A\ and \Ast, are composed
 		A_b & 0 & R_b &  0 & 0 \\
 		L &   0 & 0   &  I & 0
 	\end{array}
-	\right)
+	\right),
 \]
-and
+where $I$ is the identity matrix of appropriate size and $0$ are the matrices of zeros of appropriate size, and
 \[
 	\Ast = 
 	\left(
@@ -95,10 +99,12 @@ and
 	\end{array}
 	\right).
 \]
-These matrices have sizes and index variables given in the following tables.  The horizontal and vertical labels indicate first the number of rows or columns, with the variable used to index each section in parentheses. The table for \A:
+These matrices have sizes and index variables given in the following tables.
+The horizontal and vertical labels indicate first the number of rows or columns, with the variable used to index each section in parentheses. 
+The table for $\A$:
 \begin{center}
 	\begin{tabular}{r|c|c|c|c|c}
-		& $\sourceN\cdot\userN$ (\xa) & \sourceN (\xu) & \sourceN ($\xu + \sourceN$) & \userN () & $1$ () \\
+		& $\sourceN\cdot\userN$ ($\xa$) & $\sourceN$ ($\xu$) & $\sourceN$ ($\xu + \sourceN$) & $\userN$ () & $1$ () \\
 		\hline
 		\userN (\xr) & $A$   & $S$ & $R$   & $-I$ & $0$ \\
 		\ST (\xb)    & $A_b$ & $0$ & $R_b$ & $0$  & $0$ \\
@@ -110,7 +116,7 @@ These matrices have sizes and index variables given in the following tables.  Th
 And for \Ast:
 \begin{center}
 	\begin{tabular}{r|c|c|c|c|c}
-		& $\sourceN\cdot\userN$ (\xa) & \sourceN (\xu) & \sourceN ($\xu + \sourceN$) & \userN () & $1$ () \\
+		& $\sourceN\cdot\userN$ ($\xa$) & $\sourceN$ ($\xu$) & $\sourceN$ ($\xu + \sourceN$) & $\userN$ () & $1$ () \\
 		\hline
 		\userN (\xr) & $A'$  & $S'$    & $0$ & $0$ & $0$ \\
 		\ST (\xb)    & $0$   & $S'_b$  & $0$ & $0$ & $0$ \\
@@ -118,5 +124,69 @@ And for \Ast:
 		\hline
 	\end{tabular}
 \end{center}
+
+Note: With the patches that Alicia supplied to correct the $\xb$ problem, the $\xb$ rows in the matrix will be indexed by the variables $\gw$ (for groundwater sources) and $\sw$ (for surface water sources).
+
+These submatrices fit together in a block bi-diagonal form, which for 4 time periods looks like
+\[
+	\left(
+	\begin{array}{cccc}
+		\A   &      &      &    \\
+		\Ast & \A   &      &    \\
+		     & \Ast & \A   &    \\
+		     &      & \Ast & \A 
+	\end{array}
+	\right).
+\]
+
+In the interest of making the linear program more computationally tractable, I propose to eliminate the lower $\userN$ constraints and the rightmost $\userN+1$ variables in both $\A$ and $\Ast$.
+Making the LP smaller should make it easier to solve numerically in a stable way.
+As of this writing, this idea is purely hypothetical, but I will discuss it next.
+
+\pagebreak
+
+\section*{Proposed changes to constraint building code}
+
+I begin with some notation.
+Let the decision vector for time period $n$, collectively $x^n$, be composed of the following components:
+\begin{enumerate}
+	\item $x^n_a$ are decisions indexed by $\xa$, which determine flow.
+	\item $x^n_s$ are decisions indexed by $\xu$, which define storage between time periods.
+	\item $x^n_r$ are decisions indexed by $\xu+\sourceN$, which define water release.
+	\item $x^n_I$ are decisions corresponding to the identity matrices in $\A$.
+	\item For brevity, I will omit the final column which is never filled in.
+\end{enumerate}
+
+Then expanding the constraints for a single intermediate time period will look like
+\[
+	\begin{array}{rrrrrrl}
+		A' x^{n-1}_a & + S' x^{n-1}_s   & + A x^n_a   & + S x^n_s & + R x^n_r   & - Ix^n_I  & = b_\text{demand} \\
+		             & + S'_b x^{n-1}_s & + A_b x^n_a &           & + R_b x^n_r &           & = b_\text{supply} \\
+		L' x^{n-1}_a &                  & + L x^n_a   &           &             & + I x^n_I & = 0.
+	\end{array}
+\]
+\textbf{
+	WARNING: The variable names in the $x_I$ are appended with \texttt{-loss} in the code.
+	The code searches for \texttt{-loss} variables an sums them to determine the total loss for the system.
+	After writing out the above formulation, it looks to me that losses are being double counted in all time periods except the last one.
+	Double check this VERY carefully.
+}
+
+\textbf{
+	On second though, $L'$ and $L$ are different matrices, so both their components will be important to computing the total losses.
+}
+
+I propose to simply add together the first and last sets of constraints to arrive at an equivalent but smaller formulation.
+The variables $x_I$ are used only to connect the two sets of constraints, so removing them should be painless.
+The smaller set of constraints I propose will be
+\[
+	\begin{array}{rrrrrl}
+		(A'+L') x^{n-1}_a & + S' x^{n-1}_s   & + (A+L) x^n_a   & + S x^n_s & + R x^n_r   & = b_\text{demand} \\
+		                  & + S'_b x^{n-1}_s & + A_b x^n_a     &           & + R_b x^n_r & = b_\text{supply}.
+	\end{array}
+\]
+This will remove $\userN$ constraints and $\userN$ variables from each time period.
+The total system loss can be computed simply with $(1, 1, \dots, 1) (L'+L) (x^1_a, x^2_a, \dots, x^{41}_a) - L' x^{41}_a$.
+The final term is important for the boundary condition: there is no computed loss after the final time period.
 
 \end{document}
