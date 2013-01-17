@@ -109,13 +109,20 @@ while exitFlag ~= 1 && num <= totalNum
         ' of ' num2str(totalNum)])
     disp(' ')
     [exitFlag,p1,solnBestNew,soln2BestNew,s1,z1,r1,cuts1] = lroaz(gp,solnBest);
-    if isempty(soln2BestNew)
-        solnBest = soln2Best;
+    if isempty(solnBestNew)
+        if isempty(soln2Best)
+            break
+        else
+            solnBest = soln2Best;
+            soln2Best = [];
+        end
+    elseif isempty(soln2BestNew)
+        soln2Best = solnBest;
+        solnBest = solnBestNew;
     else
         soln2Best = soln2BestNew;
         solnBest = solnBestNew;
     end
-%     zPrev = z1;
     numCuts = max(numCuts,cuts1);
     num = num+1;
 end
