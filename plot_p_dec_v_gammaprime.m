@@ -26,7 +26,7 @@ plot( gp,prob_dec,'k.', 'MarkerSize',10)
 hold on
 % plot( gp,prob_dec_test,'ro')
 % plot(gp,prob_dec_primal,'ro' )
-plot(gp,Nl,'r-', 'LineWidth',2)
+plot(gp,Nl,'r--', 'LineWidth',2)
 hold off
 xlabel( '\gamma''', 'FontSize',16 )
 ylabel( 'Probability of Cost Decrease', 'FontSize',16)
