@@ -47,7 +47,9 @@ Period = 41;
 
 [c,A,Rhs,l,u] = get_stage_vectors(1,1, ...
     ConnectionsFile,cellInputFile,Period,periods1);
-if nargin < 2 || isempty(inputInitGuess)
+
+noInputGuess = nargin < 2 || isempty(inputInitGuess);
+if noInputGuess
     [x0 initCost] = linprog( c, [], [], A, Rhs, l, u );
 else
     x0 = inputInitGuess(1:end-3);
@@ -87,14 +89,14 @@ indivScens = scale*indivScens;
 
 % Initialize everything
 % x0 = -1;
-if nargin < 2 || isempty(inputInitGuess)
+if noInputGuess
     lambda0 = 1;
 else
     lambda0 = inputInitGuess(end-2)*scale;
 end
 % lambdaBest = lambda0;
 zlower = -Inf;
-zupper = Inf;
+% zupper = Inf;
 objA = [];
 objRhs = [];
 feasA = [];
@@ -102,7 +104,7 @@ feasRhs = [];
 feasSlope = [];
 feasInt = [];
 
-if nargin < 2 || isempty(inputInitGuess)
+if noInputGuess
     mu0 = find_mu(lambda0, numscen,indivScens);
 else
     mu0 = inputInitGuess(end-1)*scale;
@@ -118,7 +120,13 @@ notPrimalSolnFound = true;
 % Get the initial objective cut
 [theta0 slope intercept] = get_cut(x0,lambda0,mu0,numscen,N,Nbar,indivScens,slope,intercept);
 zupper = opt_obj([x0;lambda0;mu0;theta0],c,N,Nbar);
-solnBest = [x0;lambda0;mu0;theta0];
+
+% Initialize solnBest -- Make empty if inputInitGuess is provided
+if noInputGuess
+    solnBest = [x0;lambda0;mu0;theta0];
+else
+    solnBest = [];
+end
 
 % Variables for trust region
 % trustRegion = max(abs([x0;lambda0;mu0;theta0]));
@@ -330,7 +338,9 @@ lambdaBest = lambdaBest/scale;
 muBest = muBest/scale;
 zlower = zlower/scale;
 zupper = zupper/scale;
-solnBest(end-2:end) = solnBest(end-2:end)/scale;
+if ~isempty(solnBest)
+    solnBest(end-2:end) = solnBest(end-2:end)/scale;
+end
 if ~isempty(soln2Best)
     soln2Best(end-2:end) = soln2Best(end-2:end)/scale;
 end

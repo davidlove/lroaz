@@ -1,4 +1,4 @@
-function gather_lro_data(saveFileName)
+function gather_lro_data(saveFileName,gp)
 %gather_lro_data_version2 loops over lroaz to get lots of data
 %   Version 2 begins user lroaz_version15 (or later versions) 
 %   that might be useful in gettting rid of the mysterious
@@ -11,10 +11,13 @@ function gather_lro_data(saveFileName)
 %   help minimize bugs in this code
 %   Version 6 includes counts of cuts and stores time to solution
 
-if nargin < 1 || ~exist(saveFileName,'file')
-    newFile = true;
+if nargin < 2
     dgp = .01;
     gp = dgp:dgp:1-dgp;
+end
+
+if nargin < 1 || ~exist(saveFileName,'file')
+    newFile = true;
     if nargin < 1
         saveFileName = 'saved_variables.mat';
     end
@@ -106,13 +109,20 @@ while exitFlag ~= 1 && num <= totalNum
         ' of ' num2str(totalNum)])
     disp(' ')
     [exitFlag,p1,solnBestNew,soln2BestNew,s1,z1,r1,cuts1] = lroaz(gp,solnBest);
-    if isempty(soln2BestNew)
-        solnBest = soln2Best;
+    if isempty(solnBestNew)
+        if isempty(soln2Best)
+            break
+        else
+            solnBest = soln2Best;
+            soln2Best = [];
+        end
+    elseif isempty(soln2BestNew)
+        soln2Best = solnBest;
+        solnBest = solnBestNew;
     else
         soln2Best = soln2BestNew;
         solnBest = solnBestNew;
     end
-%     zPrev = z1;
     numCuts = max(numCuts,cuts1);
     num = num+1;
 end
