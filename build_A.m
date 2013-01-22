@@ -1,4 +1,4 @@
-function [A,A_st,A_lag,Nr,Nc,Zones,Cuser] = build_A(ConnectionsFile, InputFile)
+function [A,A_st,A_lag,Var_name,Nr,Nc] = build_A(ConnectionsFile, InputFile)
 
 %% Load Data
 disp('Loading Data...');
@@ -215,10 +215,10 @@ for xd = 1:sourceN % For each source term
             
             %             Csource(xl) = xg; % Cost vector source label
             Cuser(xl) = xh; % Cost vector user label
-%             Nc(1,xa) = xg; % source ID
+            Nc(1,xa) = xg; % source ID
 %             David Love -- Changed column name to indicate which arc, not
 %             which source!
-            Nc(1,xa) = {[xg{1},'->',xh{1}]}; % source ID -> user ID
+%             Nc(1,xa) = {[xg{1},'->',xh{1}]}; % source ID -> user ID
             %             Nc_type(1,xa) = source_type(xd); % source type number
             %             Nr_type(xb,1) = xj; % user type number
             %             Nr_zone(xb,1) = xf; % zone number

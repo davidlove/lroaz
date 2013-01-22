@@ -1,30 +1,28 @@
-function [c,A,b,l,u,T] = get_stage_vectors(stage,scenario, ConnectionsFile,cellInputFile,Period,periods1)
+function [c,A,b,l,u,T] = get_stage_vectors(stage,scenario, ConnectionsFile,cellInputFile,Period,periods1,Time_Lag)
 
 persistent b1 UB1 LB1 Cost1 b2 UB2 LB2 Cost2 A_full_1 A_full_2 tech_matrix
 
-persistent Nr Nc Cuser
+persistent Var_name Nr Nc
 
-persistent Abase Ap cost
+persistent Abase A_st A_lag cost
 
 persistent scale
 
 if isempty(b1)
     scale = 1;
     
-    [Abase,Ap,Nr,Nc,Zones,Cuser] = build_A(ConnectionsFile, cellInputFile{1});
-    A_full_1 = expand_A(Abase,Ap,periods1);
-    A_full_2 = expand_A(Abase,Ap,Period-periods1);
-    cols_strg = find(~cellfun(@isempty,strfind(Nc,'-strg')));
-    len_strg = cell2mat(strfind(Nc,'-strg'))-1;
-    rows_strg = zeros(size(len_strg));
-    for ii=1:length(rows_strg)
-         rows_strg(ii) = find(~cellfun(@isempty,strfind(Nr,Nc{cols_strg(ii)}(1:len_strg(ii)))),1,'first');
-    end
-    tech_matrix = zeros(size(A_full_2,1),size(A_full_1,2));
-    tech_matrix(1:size(Abase,1),(periods1-1)*size(Abase,2)+1:end) = ...
-        - Ap(size(Abase,1)+1:end,:);
+    [Abase,A_st,A_lag,Var_name,Nr,Nc] = build_A(ConnectionsFile, cellInputFile{1});
+    A_full_temp = expand_A(Abase,A_st,A_lag,Period,Time_Lag);
+    [r,c] = size(Abase);
+    A_full_1 = A_full_temp(1:periods1*r,1:periods1*c);
+    A_full_2 = A_full_temp(periods1*r+1:end,periods1*c+1:end);
+    tech_matrix = A_full_temp(periods1*r+1:end,1:periods1*c);
     tech_matrix = sparse(tech_matrix);
     [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,cost] = two_stage_input(cellInputFile,Period,periods1);
+%     For debugging purposes:
+%     remake_A_full = [A_full_1   , zeros(size(A_full_1,1),size(A_full_2,2)); ...
+%                      tech_matrix, A_full_2];
+%     assert( sum(sum(abs( remake_A_full - A_full_temp ))) == 0 );
 end
 
 switch stage
@@ -46,20 +44,24 @@ switch stage
         T = tech_matrix;
     case {-1, 'names'}
         if nargout > 3
-            error('Can only output Nc, Nr and Cuser in this mode')
+            error('Output og get_stage_vectors(''names''): Var_Name, Nc, Nr')
         end
-        c = Nc;
-        A = Nr;
-        b = Cuser;
+        c = Var_name;
+        A = Nc;
+        b = Nr;
     case 'scale'
         if exist('scenario','var')
             scale = scenario;
         end
         c = scale;
     case 'base'
+        if nargout > 4
+            error('Output og get_stage_vectors(''base''): Abase, A_st, A_lag, cost')
+        end
         c = Abase;
-        A = Ap;
-        b = cost;
+        A = A_st;
+        b = A_lag;
+        l = cost;
     otherwise
         error('Only stages 1 and 2 possible')
 end
