@@ -1,4 +1,4 @@
-function [A,Ap,Nr,Nc,Zones,Cuser] = build_A(ConnectionsFile, InputFile)
+function [A,A_st,A_lag,Nr,Nc,Zones,Cuser] = build_A(ConnectionsFile, InputFile)
 
 %% Load Data
 disp('Loading Data...');
@@ -90,7 +90,7 @@ xb = 0;
 % xd = 0;
 zuser = zeros(size(Con));
 userID = cell(size(Name.user));
-zones_new = zeros(size(Zones));
+user_zone = zeros(size(Zones));
 user_type = zeros(size(userTyp));
 
 for xc = 1:max(Zones)
@@ -100,7 +100,7 @@ for xc = 1:max(Zones)
             xa = xa + 1;
             zuser(xa,:) =  Con(xe,:);
             userID(xa,1) = Name.user(xe);
-            zones_new(xa,1) = Zones(xe);
+            user_zone(xa,1) = Zones(xe);
             user_type(xa,1) = userTyp(xe);
 %             if userTyp(xe) == 10
 %                 xd = xd + 1;
@@ -117,7 +117,7 @@ end
 
 
 Con = zuser; % resorted connection matrix
-Zones = zones_new;
+Zones = user_zone;
 % ret = ret(:,2:end);
 
 
@@ -129,6 +129,7 @@ disp('preallocating...');
 
 A = zeros(userN*2+ST,sourceN*userN+userN+sourceN*2+1);
 A_st = zeros(userN*2+ST,sourceN*userN+userN+sourceN*2+1);
+A_lag = zeros(userN*2+ST,sourceN*userN+userN+sourceN*2+1);
 Nr = cell(2*userN+ST,1);
 Nr(1:userN,1) = userID';
 Nc = cell(1,sourceN*userN+userN+sourceN*2+1);
@@ -148,7 +149,8 @@ xl = 0;
 xn = 0;
 xo = 0;
 xp = 0;
-Loss_percentage = 0.011;
+a2 = 1;
+Loss_percentage = 0.01;
 
 gw_row = userN;
 sw_row = userN + gwN;
@@ -173,9 +175,11 @@ for xd = 1:sourceN % For each source term
     a1 = strcmp(userID,a1);
     a1 = a1==1;
     a1 = Zones(a1);
+    if a2 ~= a1
+        xo = 0;
+    end
     
     source_type = find(xd <= cumS,1,'first');
-    %% test new indexing technique
     
     switch source_type
         case 1
@@ -228,7 +232,7 @@ for xd = 1:sourceN % For each source term
                 case 1                    
                     A(xr,xa) = 1; % user inflow
                     A(xe,xa) = -Loss_percentage;
-                    Nr(xe,1) = strcat(xh,'-L');
+                    Nr(xe,1) = strcat(xh,'-Loss');
                     A(gw_row,xa) = -1; % source outflow
                     Nr(gw_row,1) = xg; % Source ID
                     
@@ -249,30 +253,34 @@ for xd = 1:sourceN % For each source term
                             A(index,xa) = -1; % source outflow
                         end
                         
-                        A(xr,xa) = 0.95; % percent of total supply to NP node (5% lost to solids)
+                        A(xr,xa) = 1;
                         A(xe,xa) = -Loss_percentage;
-                        Nr(xe,1) = strcat(xh,'-L');
+                        Nr(xe,1) = strcat(xh,'-Loss');
                         A(index(xn),xu+sourceN) = -1;% source outflow
                         Nc(1,xu+sourceN) = strcat(xg,'-release');
                         
                     elseif user_type(xr) == 6 % recharge
                         A(index(xn),xa) = -1; % source outflow
-                        if strncmpi(userID(xr),'RO',2) == 1
-                            A_st(xr,xa) = 0.95*0.75; % percent of supply to user (5% lost to solids, plus 25% lost during RO)
-                        else
-                            A_st(xr,xa) = 0.95; % percent of supply to user (5% lost to solids)
-                        end
-                        A_st(xe,xa) = -Loss_percentage;
-                        Nr(xe,1) = strcat(xh,'-L');
+                        A_lag(xr,xa) = 1;
+                        A_lag(xe,xa) = -0.03;% 3% lost to evaporation in recharge pools
+                        Nr(xe,1) = strcat(xh,'-loss');
                         A(index(xn),xu+sourceN) = -1;% source outflow
                         Nc(1,xu+sourceN) = strcat(xg,'-release');
                         
-                    else    % release
+                    elseif user_type(xr) == 2 % Another WWTP
+                        A(index(xn),xa) = -1; % source outflow
+                        A(xr,xa) = 1;
+                        A(xe,xa) = -0.05;% 3% lost to evaporation in recharge pools
+                        Nr(xe,1) = strcat(xh,'-loss');
+                        A(index(xn),xu+sourceN) = -1;% source outflow
+                        Nc(1,xu+sourceN) = strcat(xg,'-release');
+                        
+                    else    % release and direct distribution
                         
                         A(index(xn),xa) = -1; % source outflow
-                        A(xr,xa) = 0.95; % percent of total supply to user (5% lost to solids)
-                        A(xe,xa) = -Loss_percentage;
-                        Nr(xe,1) = strcat(xh,'-L');
+                        A(xr,xa) = 1;
+                        A(xe,xa) = -Loss_percentage;% percent of total supply to user (5% lost to solids)
+                        Nr(xe,1) = strcat(xh,'-Loss');
                         A(index(xn),xu+sourceN) = -1;% source release to surface water
                         Nc(1,xu+sourceN) = strcat(xg,'-release');
                     end
@@ -282,22 +290,35 @@ for xd = 1:sourceN % For each source term
                     if xj ~= 6 %(recharge user)
                         A(xr,xa) = 1; % user inflow from sw
                         A(xe,xa) = -Loss_percentage;
+                        Nr(xe,1) = strcat(xh,'-Loss');
                     else
-                        A_st(xr,xa) = 1;
-                        A_st(xe,xa) = -Loss_percentage;
+                        A_lag(xr,xa) = 1;
+                        A_lag(xe,xa) = -0.03;%(3% lost to evaporation in recharge pools)
+                        Nr(xe,1) = strcat(xh,'-loss');
                     end
                     A(sw_row,xa) = -1; % source outflow
                     
-                    Nr(xe,1) = strcat(xh,'-L');
                     A(sw_row,xu+sourceN) = -1;% downstream flow
                     Nc(1,xu+sourceN) = strcat(xg,'-DSflow');
                     Nr(sw_row,1) = xg;
                     
-                    % wtp conditions/ reservoir
+                    % wtp conditions/ reservoir/ intercept
                 case 4                    
                     A(xr,xa) = 1; % user inflow
-                    A(xe,xa) = -Loss_percentage;
-                    Nr(xe,1) = strcat(xh,'-L');
+                
+                    % for IPR intercept/potable return
+                    if xj == 10 || xj == 12
+                        A(xr-1,xa) = 0.98; % user inflow
+                    end
+                    
+                    if user_type(xr) == 2
+                        A(xe,xa) = -0.05; % percent lost to solids at WWTP
+                        Nr(xe,1) = strcat(xh,'-loss');
+                    else
+                        A(xe,xa) = -Loss_percentage;
+                        Nr(xe,1) = strcat(xh,'-Loss');
+                    end
+                    a2 = a1;
                     
                     A(index(xo),xa) = -1; % source outflow
                     
@@ -308,8 +329,20 @@ for xd = 1:sourceN % For each source term
                     % recharge conditions
                 case 6
                     A(xr,xa) = 1; % user inflow
-                    A(xe,xa) = -Loss_percentage;
-                    Nr(xe,1) = strcat(xh,'-L');
+                
+                    if strncmpi(sourceID(xd),'RO',2) == 1
+                        if strncmpi(userID(xr),'DemNP',5) == 1
+                            A(xe,xa) = -Loss_percentage;
+                            Nr(xe,1) = strcat(xh,'-Loss');
+                        else
+                            A(xe,xa) = -0.25; % 25% lost in RO treatment
+                            Nr(xe,1) = strcat(xh,'-loss');
+                        end
+                    else
+                        A(xe,xa) = -Loss_percentage;
+                        Nr(xe,1) = strcat(xh,'-Loss');
+                    end
+                    
                     Nc(1,xu) = strcat(xg,'-strg');
                     
                     
@@ -328,7 +361,7 @@ for xd = 1:sourceN % For each source term
                     
                     A(xr,xa) = 1; % user inflow from zonal main
                     A(xe,xa) = -Loss_percentage;
-                    Nr(xe,1) = strcat(xh,'-L');
+                    Nr(xe,1) = strcat(xh,'-Loss');
                     
                     A(index,xa) = -1; % source outflow
                     if xj == 10 || xj == 12
@@ -336,7 +369,7 @@ for xd = 1:sourceN % For each source term
                         index = find(Zones==xf & user_type==9);
                         A(index,xa) = Return_Matrix(xi,xi);
                         A(index+xk,xa) = -Loss_percentage;
-                        Nr(index+xk) = strcat(userID(index),'-L');
+                        Nr(index+xk) = strcat(userID(index),'-Loss');
                     end
                     
                     % non-potable zone source
@@ -344,15 +377,20 @@ for xd = 1:sourceN % For each source term
                     
                     A(xr,xa) = 1; % user inflow from zonal main
                     A(xe,xa) = -Loss_percentage;
-                    Nr(xe,1) = strcat(xh,'-L');
+                    Nr(xe,1) = strcat(xh,'-Loss');
                     A(index,xa) = -1; % source outflow
                     
                     % return zone source
                 case 9
                     
                     A(xr,xa) = 1; % user inflow from zonal main
-                    A(xe,xa) = -Loss_percentage;
-                    Nr(xe,1) = strcat(xh,'-L');
+                    if user_zone(xr) == 2 && user_type(xr) == 2 % going to satellite plant
+                        A(xe,xa) = -0.05; % 5% lost to solids at WWTP
+                        Nr(xe,1) = strcat(xh,'-loss');
+                    else
+                        A(xe,xa) = -Loss_percentage;
+                        Nr(xe,1) = strcat(xh,'-Loss');
+                    end
                     A(index,xa) = -1; % source outflow
             end
         end
@@ -373,4 +411,29 @@ empties = find(cellfun(@isempty,Nc)); % identify the empty cells
 Nc(empties) = [];
 A(:,empties) = [];
 A_st(:,empties) = [];
-Ap = vertcat(A,A_st);
+A_lag(:,empties) = [];
+
+xa = strfind(Nr,'oss');
+xa = find(~cellfun(@isempty,xa));
+NL = Nr(xa); % loss variable names
+assert(length(NL) == userN);
+xa = length(NL);
+xb = length(Nc);
+xc = xb - xa;
+assert(length(Nc) - xc == userN);
+Nc = horzcat(Nc(1,1:xc),NL');
+
+%% Write Variable Names to Input file
+
+Csource = Nc';
+xa = length(Cuser);
+xa = Csource(xa+1:end);
+Cuser = vertcat(Cuser',xa);
+Var_name = cell(length(Cuser),1);
+for xb = 1:length(Cuser)
+    if ismember(Csource(xb,1),Cuser(xb,1))
+        Var_name(xb,1) = Csource(xb,1);
+    else
+        Var_name(xb,1) = strcat(Csource(xb,1),{' -->> '},Cuser(xb,1));
+    end
+end
