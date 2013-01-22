@@ -18,24 +18,11 @@ periods1 = 41;
 
 [c,A_full,b_vec,LB,UB] = get_stage_vectors(1,1, ...
     ConnectionsFile,cellInputFile,Period,periods1);
-[Nc,Nr,Cuser] = get_stage_vectors('names');
-[A,Ap,cost] = get_stage_vectors('base');
+[Var_name,Nc,Nr] = get_stage_vectors('names');
+[A,A_st,A_lag,cost] = get_stage_vectors('base');
 [Q fval] = linprog( c, [], [], A_full, b_vec, LB, UB );
 
 %% Write Variable Names to Input file
-
-Csource = Nc';
-xa = length(Cuser);
-xa = Csource(xa+1:end);
-Cuser = vertcat(Cuser',xa);
-Var_name = cell(length(Cuser),1);
-for xb = 1:length(Cuser)
-    if ismember(Csource(xb,1),Cuser(xb,1))
-        Var_name(xb,1) = Csource(xb,1);
-    else
-        Var_name(xb,1) = strcat(Csource(xb,1),{' -->> '},Cuser(xb,1));
-    end
-end
 
 % if Question1 == 1
 %     disp('Updating Input file variables...');

@@ -24,7 +24,7 @@ end
 solns = load(solutionsFile);
 [~,~,~,~,~,B] = get_stage_vectors(2,1, ...
     connectionsFile,cellInputFile,41,10);
-[Nc,Nr] = get_stage_vectors(-1);
+[~,Nc,Nr] = get_stage_vectors(-1);
 
 good = find(solns.exitFlags==1);
 gp = solns.gp;

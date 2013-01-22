@@ -28,9 +28,9 @@ Period = 41;
 % clear get_stage_vectors
 % [c,A_full,b_vec,LB,UB] = get_stage_vectors(1,1, ...
 %     ConnectionsFile,cellInputFile,Period,periods1);
-[Nc,~] = get_stage_vectors('names');
-[~,Ap,~] = get_stage_vectors('base');
-stageSize = size(Ap,2);
+[~,Nc,~] = get_stage_vectors('names');
+Abase = get_stage_vectors('base');
+stageSize = 2*size(Abase,2);
 
 % [F fval] = linprog( c, [], [], A_full, b_vec, LB, UB );
 
