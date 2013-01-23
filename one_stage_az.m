@@ -1,6 +1,7 @@
 function Q = one_stage_az( inputLocation )
 
 clear get_stage_vectors
+clc
 
 if nargin < 1
     inputLocation = 'all_scenarios_new/9/';
@@ -8,6 +9,8 @@ end
 
 % one_stage_az uses the code from lroaz_version15 to do a one-stage problem
 % that takes a given input
+
+tic;
 
 ConnectionsFile = [ inputLocation 'Connections.xlsx'];
 cellInputFile = { [inputLocation 'Inputs.xlsx'] };
