@@ -34,6 +34,7 @@ cellInputFile = { ...
 %     'all_scenarios/7/Inputs.xlsx', ...
 %     'all_scenarios/8/Inputs.xlsx', ...
     };
+solutionFile = 'all_scenarios_new/9/Solution.xlsx';
 
 % Problem Parameters
 numscen = nfactor*ones(size(cellInputFile));
@@ -346,7 +347,7 @@ corRelLikelihood = exp(sum(numscen.*(log(pWorst./sum(pWorst))-log(pmle))));
 numCuts = size(objA,1);
 
 disp(['Time elapsed = ' num2str(toc)])
-read_results(x0,c,periods1)
+read_results(x0,periods1,cellInputFile,solutionFile)
 disp(['lambda = ' num2str(lambdaBest) ', mu = ' num2str(muBest)])
 disp(['First-stage cost = ' num2str(c*xBest)])
 disp(['Scenario costs = ' num2str(indivScens')])
