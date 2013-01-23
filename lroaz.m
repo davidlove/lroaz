@@ -27,26 +27,23 @@ end
 optimizer = 'linprog';
 % optimizer = 'cvx';
 
-ConnectionsFile = 'all_scenarios/5/Connections.xlsx';
+ConnectionsFile = 'all_scenarios_new/9/Connections.xlsx';
 cellInputFile = { ...
-    'all_scenarios/5/Inputs.xlsx', ...
-    'all_scenarios/6/Inputs.xlsx', ...
-    'all_scenarios/7/Inputs.xlsx', ...
-    'all_scenarios/8/Inputs.xlsx', ...
+    'all_scenarios_new/9/Inputs.xlsx', ...
+%     'all_scenarios/6/Inputs.xlsx', ...
+%     'all_scenarios/7/Inputs.xlsx', ...
+%     'all_scenarios/8/Inputs.xlsx', ...
     };
 
 % Problem Parameters
 numscen = nfactor*ones(size(cellInputFile));
 N = sum(numscen);
-% The constant inside the log is a number less than 1
-% gammaprime = 0.95;
 Nbar = N*(log(N)-1) - log(gammaprime);
 Period = 41;
-% periods1 = 10;
-% c = 1;
+timeLag = 1;
 
 [c,A,Rhs,l,u] = get_stage_vectors(1,1, ...
-    ConnectionsFile,cellInputFile,Period,periods1);
+    ConnectionsFile,cellInputFile,Period,periods1,timeLag);
 
 noInputGuess = nargin < 2 || isempty(inputInitGuess);
 if noInputGuess
