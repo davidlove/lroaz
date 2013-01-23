@@ -17,12 +17,12 @@ if isempty(b1)
     A_full_1 = A_full_temp(1:periods1*r,1:periods1*c);
     A_full_2 = A_full_temp(periods1*r+1:end,periods1*c+1:end);
     tech_matrix = A_full_temp(periods1*r+1:end,1:periods1*c);
-    tech_matrix = sparse(tech_matrix);
+%     tech_matrix = sparse(tech_matrix);
     [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,cost] = two_stage_input(cellInputFile,Period,periods1);
 %     For debugging purposes:
-%     remake_A_full = [A_full_1   , zeros(size(A_full_1,1),size(A_full_2,2)); ...
-%                      tech_matrix, A_full_2];
-%     assert( sum(sum(abs( remake_A_full - A_full_temp ))) == 0 );
+    remake_A_full = [A_full_1   , zeros(size(A_full_1,1),size(A_full_2,2)); ...
+                     tech_matrix, A_full_2];
+    assert( sum(sum(abs( remake_A_full - A_full_temp ))) == 0 );
 end
 
 switch stage

@@ -17,7 +17,8 @@ cellInputFile = { [inputLocation 'Inputs.xlsx'] };
 
 % Problem Parameters
 Period = 41;
-periods1 = 41;
+periods1 = Period;
+Time_Lag = 1;
 
 %% Clear inputs file if connections have been altared
 
@@ -53,7 +54,7 @@ periods1 = 41;
 %% Build and solve LP
 
 [c,A_full,b_vec,LB,UB] = get_stage_vectors(1,1, ...
-    ConnectionsFile,cellInputFile,Period,periods1,1);
+    ConnectionsFile,cellInputFile,Period,periods1,Time_Lag);
 [Var_name,Nc,Nr] = get_stage_vectors('names');
 [A,A_st,A_lag,cost,Zones] = get_stage_vectors('base');
 [Q fval] = linprog( c, [], [], A_full, b_vec, LB, UB );
