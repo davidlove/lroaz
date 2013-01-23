@@ -460,6 +460,10 @@ A(:,empties) = [];
 A_st(:,empties) = [];
 A_lag(:,empties) = [];
 
+A     = sparse(A);
+A_st  = sparse(A_st);
+A_lag = sparse(A_lag);
+
 % Number of columns in A = number of arcs + (number of -strg, -release, and
 % -DSflow variables) + number of loss variables (1 per user)
 assert( size(A,2) == numArcs + sum(S([gw,sw,wwtp,rchrg])) + userN );
