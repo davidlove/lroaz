@@ -4,14 +4,14 @@ persistent b1 UB1 LB1 Cost1 b2 UB2 LB2 Cost2 A_full_1 A_full_2 tech_matrix
 
 persistent Var_name Nr Nc
 
-persistent Abase A_st A_lag cost
+persistent Abase A_st A_lag cost Zones
 
 persistent scale
 
 if isempty(b1)
     scale = 1;
     
-    [Abase,A_st,A_lag,Var_name,Nr,Nc] = build_A(ConnectionsFile, cellInputFile{1});
+    [Abase,A_st,A_lag,Var_name,Nr,Nc,Zones] = build_A(ConnectionsFile, cellInputFile{1});
     A_full_temp = expand_A(Abase,A_st,A_lag,Period,Time_Lag);
     [r,c] = size(Abase);
     A_full_1 = A_full_temp(1:periods1*r,1:periods1*c);
@@ -55,13 +55,14 @@ switch stage
         end
         c = scale;
     case 'base'
-        if nargout > 4
-            error('Output og get_stage_vectors(''base''): Abase, A_st, A_lag, cost')
+        if nargout > 5
+            error('Output og get_stage_vectors(''base''): Abase, A_st, A_lag, cost, Zones')
         end
         c = Abase;
         A = A_st;
         b = A_lag;
         l = cost;
+        u = Zones;
     otherwise
         error('Only stages 1 and 2 possible')
 end

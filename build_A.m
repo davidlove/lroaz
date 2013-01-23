@@ -1,4 +1,4 @@
-function [A,A_st,A_lag,Var_name,Nr,Nc] = build_A(ConnectionsFile, InputFile)
+function [A,A_st,A_lag,Var_name,Nr,Nc,Zones] = build_A(ConnectionsFile, InputFile)
 
 %% Load Data
 disp('Loading Data...');
@@ -123,7 +123,31 @@ Zones = user_zone;
 
 %% Check Return Matrix
 
+% prompt = input('Does Return Matrix need to be updated? Yes=1  No=2:  ');
+% if prompt == 1 % input default values
+%     blank = cell(100,100);
+%     xlswrite(InputFile,blank,'Returns','A1');
+%     Return_Matrix = ret;
+%     ret = num2cell(ret);
+%     ret = vertcat(rtrnID,ret);
+%     b = {[]};
+%     retsourceID = vertcat(b,retsourceID);
+%     Return_Write = horzcat(retsourceID,ret);
+%     xlswrite(InputFile,Return_Write,'Returns')
+%     disp('Are any returns other than default values?');
+%     disp('');
+%     question = input('Yes=1  No=2  : ');
+%     if question == 1 % modify defaults
+%         disp('Revise LP_Order excel file then save and close.');
+%         question = input('Enter 1 when complete: ');
+%         if question == 1
+%             Return_Matrix = xlsread(InputFile,'Returns');
+%         end
+%     else Return_Matrix = xlsread(InputFile,'Returns');% Use defaults
+%     end
+% else 
 Return_Matrix = xlsread(InputFile,'Returns'); % Use previous values
+% end
 %% preallocate
 disp('preallocating...');
 
