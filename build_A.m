@@ -20,11 +20,11 @@ userN = size(Con,1)-1;
 numArcs = sum(sum(Con(2:end,:)));
 
 % Enumerate user and source types
-gw   =  1; wwtp =  2; sw    =  3;
-wtp  =  4; dmy  =  5; rchrg =  6;
-p    =  7; np   =  8; rtrn  =  9;
-pmu  = 10; npmu = 11; pin   = 12;
-npin = 13; pag  = 14; npag  = 15;
+GW   =  1; WWTP =  2; SW    =  3;
+WTP  =  4; DMY  =  5; RCHRG =  6;
+P    =  7; NP   =  8; RTRN  =  9;
+PMU  = 10; NPMU = 11; PIN   = 12;
+NPIN = 13; PAG  = 14; NPAG  = 15;
 
 %preallocate
 gwN   = 0; wwtpN = 0; swN    = 0; 
@@ -41,39 +41,39 @@ dmyID(1) = {[]}; swID(1) = {[]}; pID(1) = {[]}; npID(1) = {[]}; rtrnID(1) = {[]}
 % Sort Connection Matrix by source type
 for i = 1:sourceN
     switch Con(1,i)
-        case gw
+        case GW
             gwN = gwN + 1;
             gwsource(:,gwN) = Con(2:userN+1,i);
             gwID(gwN) = Name.source(i);
-        case wwtp
+        case WWTP
             wwtpN = wwtpN + 1;
             wwtpsource(:,wwtpN) = Con(2:userN+1,i);
             wwtpID(wwtpN) = Name.source(i);
-        case sw
+        case SW
             swN = swN + 1;
             swsource(:,swN) = Con(2:userN+1,i);
             swID(swN) = Name.source(i);
-        case wtp
+        case WTP
             wtpN = wtpN + 1;
             wtpsource(:,wtpN) = Con(2:userN+1,i);
             wtpID(wtpN) = Name.source(i);
-        case dmy
+        case DMY
             dmyN = dmyN + 1;
             dmysource(:,dmyN) = Con(2:userN+1,i);
             dmyID(dmyN) = Name.source(i);
-        case rchrg
+        case RCHRG
             rchrgN = rchrgN + 1;
             rchrgsource(:,rchrgN) = Con(2:userN+1,i);
             rchrgID(rchrgN) = Name.source(i);
-        case p % potable main
+        case P % potable main
             pN = pN + 1;
             psource(:,pN) = Con(2:userN+1,i);
             pID(pN) = Name.source(i);
-        case np % non-potable main
+        case NP % non-potable main
             npN = npN + 1;
             npsource(:,npN) = Con(2:userN+1,i);
             npID(npN) = Name.source(i);
-        case rtrn % return main
+        case RTRN % return main
             rtrnN = rtrnN + 1;
             rtrnsource(:,rtrnN) = Con(2:userN+1,i);
             rtrnID(rtrnN) = Name.source(i);
@@ -198,9 +198,9 @@ gw_row = userN;
 sw_row = userN + gwN;
 
 % Centralized facilities
-index = find(Zones==1 & user_type==wwtp);
+index = find(Zones==1 & user_type==WWTP);
 xq = length(index); % reclamation
-index = find(Zones==1 & user_type==rchrg);
+index = find(Zones==1 & user_type==RCHRG);
 xs = length(index); % recharge
 
 for xd = 1:sourceN % For each source term
@@ -224,28 +224,28 @@ for xd = 1:sourceN % For each source term
     source_type = find(xd <= cumS,1,'first');
     
     switch source_type
-        case gw
+        case GW
             gw_row = gw_row + 1;
-        case wwtp
+        case WWTP
             if xd <= gwN + xq
                 xn = xn + 1;
             else
                 xn = 1;
             end
-        case sw
+        case SW
             sw_row = sw_row + 1;
-        case wtp
+        case WTP
             xo = xo + 1;
-        case rchrg
+        case RCHRG
             if xd <= gwN + wwtpN + swN + wtpN + dmyN + xs
                 xp = xp +1;
             else
                 xp = 1;
             end
-        case dmy
-        case p
-        case np
-        case rtrn
+        case DMY
+        case P
+        case NP
+        case RTRN
         otherwise
             error(['Unknown source type nubmer ' num2str(Con(1,i))]);
     end
@@ -271,7 +271,7 @@ for xd = 1:sourceN % For each source term
             
             switch source_type
                 % gw source conditions
-                case gw                    
+                case GW                    
                     A(xr,xa) = 1; % user inflow
                     A(xe,xa) = -Loss_percentage;
                     Nr(xe,1) = strcat(xh,'-Loss');
@@ -285,10 +285,10 @@ for xd = 1:sourceN % For each source term
                     A_st(gw_row,xu) = 1; % next period storage carry over
                     
                 % wwtp source conditions
-                case wwtp
+                case WWTP
                     
                     switch user_type(xr)
-                        case np
+                        case NP
                             if a1==1
                                 A(index(xn),xa) = -1; % source outflow
                             else
@@ -299,21 +299,21 @@ for xd = 1:sourceN % For each source term
                             Nr(xe,1) = strcat(xh,'-Loss');
                             A(index(xn),xu+sourceN) = -1;% source outflow
                             Nc(1,xu+sourceN) = strcat(xg,'-release');
-                        case rchrg
+                        case RCHRG
                             A(index(xn),xa) = -1; % source outflow
                             A_lag(xr,xa) = 1;
                             A_lag(xe,xa) = -0.03;% 3% lost to evaporation in recharge pools
                             Nr(xe,1) = strcat(xh,'-loss');
                             A(index(xn),xu+sourceN) = -1;% source outflow
                             Nc(1,xu+sourceN) = strcat(xg,'-release');
-                        case wwtp
+                        case WWTP
                             A(index(xn),xa) = -1; % source outflow
                             A(xr,xa) = 1;
                             A(xe,xa) = -0.05;% 3% lost to evaporation in recharge pools
                             Nr(xe,1) = strcat(xh,'-loss');
                             A(index(xn),xu+sourceN) = -1;% source outflow
                             Nc(1,xu+sourceN) = strcat(xg,'-release');
-                        case {wtp,npmu,npin,npag} % release and direct distribution
+                        case {WTP,NPMU,NPIN,NPAG} % release and direct distribution
                             A(index(xn),xa) = -1; % source outflow
                             A(xr,xa) = 1;
                             A(xe,xa) = -Loss_percentage;% percent of total supply to user (5% lost to solids)
@@ -329,8 +329,8 @@ for xd = 1:sourceN % For each source term
                     end
                     
                 % surface water conditions
-                case sw
-                    if xj ~= rchrg %(recharge user)
+                case SW
+                    if xj ~= RCHRG %(recharge user)
                         A(xr,xa) = 1; % user inflow from sw
                         A(xe,xa) = -Loss_percentage;
                         Nr(xe,1) = strcat(xh,'-Loss');
@@ -346,15 +346,15 @@ for xd = 1:sourceN % For each source term
                     Nr(sw_row,1) = xg;
                     
                 % wtp conditions/ reservoir/ intercept
-                case wtp                    
+                case WTP                    
                     A(xr,xa) = 1; % user inflow
                 
                     % for IPR intercept/potable return
-                    if xj == pmu || xj == pin
+                    if xj == PMU || xj == PIN
                         A(xr-1,xa) = 0.98; % user inflow
                     end
                     
-                    if user_type(xr) == wwtp
+                    if user_type(xr) == WWTP
                         A(xe,xa) = -0.05; % percent lost to solids at WWTP
                         Nr(xe,1) = strcat(xh,'-loss');
                     else
@@ -366,11 +366,11 @@ for xd = 1:sourceN % For each source term
                     A(index(xo),xa) = -1; % source outflow
                     
                 % dummy source conditions
-                case dmy
+                case DMY
                     A(xr,xa) = 1; % user inflow from dmy source
                     
                 % recharge conditions
-                case rchrg
+                case RCHRG
                     A(xr,xa) = 1; % user inflow
                 
                     if strncmpi(sourceID(xd),'RO',2) == 1
@@ -399,23 +399,23 @@ for xd = 1:sourceN % For each source term
                     end
                     
                 % potable zone source
-                case p
+                case P
                     
                     A(xr,xa) = 1; % user inflow from zonal main
                     A(xe,xa) = -Loss_percentage;
                     Nr(xe,1) = strcat(xh,'-Loss');
                     
                     A(index,xa) = -1; % source outflow
-                    if xj == pmu || xj == pin
+                    if xj == PMU || xj == PIN
                         xi = xi+1;
-                        index = find(Zones==xf & user_type==rtrn);
+                        index = find(Zones==xf & user_type==RTRN);
                         A(index,xa) = Return_Matrix(xi,xi);
                         A(index+xk,xa) = -Loss_percentage;
                         Nr(index+xk) = strcat(userID(index),'-Loss');
                     end
                     
                 % non-potable zone source
-                case np
+                case NP
                     
                     A(xr,xa) = 1; % user inflow from zonal main
                     A(xe,xa) = -Loss_percentage;
@@ -423,10 +423,10 @@ for xd = 1:sourceN % For each source term
                     A(index,xa) = -1; % source outflow
                     
                 % return zone source
-                case rtrn
+                case RTRN
                     
                     A(xr,xa) = 1; % user inflow from zonal main
-                    if Zones(xr) == wwtp && user_type(xr) == wwtp % going to satellite plant
+                    if Zones(xr) == WWTP && user_type(xr) == WWTP % going to satellite plant
                         A(xe,xa) = -0.05; % 5% lost to solids at WWTP
                         Nr(xe,1) = strcat(xh,'-loss');
                     else
@@ -466,7 +466,7 @@ A_lag = sparse(A_lag);
 
 % Number of columns in A = number of arcs + (number of -strg, -release, and
 % -DSflow variables) + number of loss variables (1 per user)
-assert( size(A,2) == numArcs + sum(S([gw,sw,wwtp,rchrg])) + userN );
+assert( size(A,2) == numArcs + sum(S([GW,SW,WWTP,RCHRG])) + userN );
 assert( size(A,2) == size(A_st,2) );
 assert( size(A,2) == size(A_lag,2) );
 
