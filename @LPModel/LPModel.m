@@ -5,18 +5,24 @@
 
 classdef LPModel < handle
     
+    properties
+    end
+    
 %     First stage/single stage LP matrices
-    properties %(GetAccess=public, SetAccess=private)
-        c;
-        A;
-        b;
-        l;
-        u;
-        variableNames;
+    properties (GetAccess=public, SetAccess=private)
+        c
+        A
+        b
+        l
+        u
+        variableNames
+        Nr
+        Nc
+        Zones
     end
     
 %     Second stage LP matrices
-    properties %(Access=private)
+    properties (Access=private)
         q
         D
         d
@@ -26,7 +32,7 @@ classdef LPModel < handle
     end
     
 %     Properties of the LP Model
-    properties %(GetAccess=public, SetAccess=immutable)
+    properties (GetAccess=public, SetAccess=immutable)
         numStages
         numScenarios
         timePeriods
@@ -69,6 +75,7 @@ classdef LPModel < handle
                         obj.timePeriods = varargin{2};
                         obj.timeLag = varargin{3};
                         obj.firstStagePeriods = obj.timePeriods;
+                        obj.GenerateDataFromExcel;
                 end
             elseif iscellstr(varargin{1})
                 obj.folderCellArray = varargin{1};
@@ -78,13 +85,14 @@ classdef LPModel < handle
                 obj.timeLag = varargin{3};
                 obj.firstStagePeriods = varargin{4};
                 obj.SetBlankSecondStage;
+                obj.GenerateDataFromExcel;
             else
                 error('Unrecognized initialization')
             end
         end
     end
     
-    methods %(Access=private)
+    methods (Access=private)
 %         SetBlankSecondStage sets all second stage data to blank arrays of
 %         the correct size
         function SetBlankSecondStage( obj )
@@ -100,13 +108,45 @@ classdef LPModel < handle
             end
         end
         
-        function IsValidScenario( obj, inScenario )
+        function tf = IsValidScenario( obj, inScenario )
             if inScenario > 0 && inScenario <= obj.numScenarios
                 tf = true;
             else
                 error(['Input scenario number ' num2str(inScenario) ...
                     ' is wrong.  Scenarios must be numbered 1 to ' ...
                     num2str(obj.numScenarios)])
+            end
+        end
+        
+        function GenerateDataFromExcel( obj )
+            cellConnectionsFile = strcat(obj.folderCellArray,'Connections.xlsx');
+            cellInputFile = strcat(obj.folderCellArray,'Inputs.xlsx');
+            [Abase,A_st,A_lag,obj.Nr,obj.Nc,obj.Zones] ...
+                = obj.BuildA(cellConnectionsFile{1}, cellInputFile{1});
+            A_full_temp = obj.ExpandA(Abase,A_st,A_lag);
+            switch obj.numStages
+                case 1
+                    obj.SetA( A_full_temp );
+                case 2
+                    [rows,cols] = size(Abase);
+                    obj.SetA( A_full_temp(1:obj.firstStagePeriods*rows,1:obj.firstStagePeriods*cols) );
+                    for omega = 1:obj.numScenarios
+                        obj.SetD(A_full_temp(obj.firstStagePeriods*rows+1:end,obj.firstStagePeriods*cols+1:end),omega);
+                        obj.SetB(-A_full_temp(obj.firstStagePeriods*rows+1:end,1:obj.firstStagePeriods*cols),omega);
+                    end
+            end
+            [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,cost] = obj.BuildVectors(cellInputFile);
+            obj.Setb(b1);
+            obj.Setl(LB1);
+            obj.Setu(UB1);
+            obj.Setc(Cost1');
+            if obj.numStages == 2
+                for omega = 1:obj.numScenarios
+                    obj.Setq( Cost2(:,omega)', omega );
+                    obj.Setd( b2(:,omega), omega );
+                    obj.Setl2( LB2(:,omega), omega );
+                    obj.Setu2( UB2(:,omega), omega );
+                end
             end
         end
                 
