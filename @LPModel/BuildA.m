@@ -43,7 +43,7 @@ if obj.writeToExcel
         xlswrite('InputFile',blank,'kWh','A');
         xlswrite('InputFile',str,'kWh','A');
         xlswrite('InputFile',blank,'kWh','B2');
-        sound(y, Fs);
+        sound(obj.y, obj.Fs);
     end
 end
 

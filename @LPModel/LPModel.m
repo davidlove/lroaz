@@ -43,6 +43,8 @@ classdef LPModel < handle
         Nc
         Zones
         fullCostVector
+        y
+        Fs
     end
     
 %     Excel writing parameters
@@ -86,6 +88,8 @@ classdef LPModel < handle
                         obj.timeLag = varargin{3};
                         obj.timePeriods = obj.numYears * obj.timeLag;
                         obj.firstStagePeriods = obj.timePeriods;
+                        [obj.y, obj.Fs] = wavread([obj.folderCellArray{1} 'bell']);
+                        
                         obj.GenerateDataFromExcel;
                 end
             elseif iscellstr(varargin{1})
@@ -96,6 +100,8 @@ classdef LPModel < handle
                 obj.timeLag = varargin{3};
                 obj.timePeriods = obj.numYears * obj.timeLag;
                 obj.firstStagePeriods = varargin{4} * obj.timeLag;
+                [obj.y, obj.Fs] = wavread([obj.folderCellArray{1} 'bell']);
+                
                 obj.SetBlankSecondStage;
                 obj.GenerateDataFromExcel;
             else

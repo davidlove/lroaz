@@ -1,26 +1,44 @@
-function Q = one_stage_az( inputLocation, Period, Time_Lag )
+function one_stage_az( inputLocation, numYears, Time_Lag )
 
-clear get_stage_vectors
-clc
+% one_stage_az demonstrates the correct way to use the LPModel class to
+% solve the single-stage problem with time lag
 
 if nargin < 3
-    Time_Lag = 1;
+    Time_Lag = 12;
     if nargin < 2
-        Period = 41;
+        numYears = 41;
         if nargin < 1
-            inputLocation = 'all_scenarios_new/9/';
+            inputLocation = 'hwee_scenario/';
         end
     end
 end
 
-% one_stage_az uses the code from lroaz_version15 to do a one-stage problem
-% that takes a given input
-
 tic;
 
+% The arguments to LPModel are:
+%     1. The folder containing the spreadsheets:
+%         Connections.xlsx
+%         Inputs.xlsx
+%         sf.xlsx
+%        Here, I've used the folder hwee_scenario
+%     2. The number of years in the model.  This is NOT the number of time
+%     periods.
+%     3. The time lag.  LPModel figures out timePeriods = numYears *
+%     Time_Lag on its own
+%     LPModel returns the object lp, which could be given any name
+lp = LPModel(inputLocation,numYears,Time_Lag);
 
-lp = LPModel(inputLocation,Period,Time_Lag);
+% Now, we solve the linear program:
+%     min  c*x
+%     s.t. A*x = b
+%          l <= x <= u
+% using the lp object.
+% All matrices and vectors are stored within lp
 [Q fval] = linprog( lp.c, [], [], lp.A, lp.b, lp.l, lp.u );
-lp.ReadResults(Q,inputLocation);
+
+% Finally, we read the results given by the solution Q.
+% ReadResults also returns the modified (rounded and transposed) version of
+% Q
+Q = lp.ReadResults(Q,inputLocation);
 
 toc

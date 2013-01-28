@@ -20,7 +20,7 @@ if obj.writeToExcel && obj.Question1 == 1
     xlswrite(inputFile,Var_name,'Upper Bounds','B2');
     xlswrite(inputFile,Var_name,'Lower Bounds','B2');
     xlswrite(inputFile,Var_name,'kWh','B2');
-    sound(y, Fs);
+    sound(obj.y, obj.Fs);
     
     Question2 = input('Enter 1 after "Inputs" file has been updated:  ');
     clc;
@@ -226,7 +226,7 @@ if obj.writeToExcel
         xlswrite(solutionFile,obj.Final,'Final Stats','B5');
     end
 end
-% sound(y, Fs);
+sound(obj.y, obj.Fs);
 % toc;
 % xf = toc;
 Flow = Flow(:,2:end);
