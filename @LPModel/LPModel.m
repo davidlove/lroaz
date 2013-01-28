@@ -31,6 +31,7 @@ classdef LPModel < handle
         numStages
         numScenarios
         timePeriods
+        numYears
         timeLag
         firstStagePeriods
         folderCellArray
@@ -82,8 +83,9 @@ classdef LPModel < handle
                         obj.folderCellArray = { varargin{1} };
                         obj.numStages = 1;
                         obj.numScenarios = 0;
-                        obj.timePeriods = varargin{2};
+                        obj.numYears = varargin{2};
                         obj.timeLag = varargin{3};
+                        obj.timePeriods = obj.numYears * obj.timeLag;
                         obj.firstStagePeriods = obj.timePeriods;
                         obj.GenerateDataFromExcel;
                 end
@@ -91,9 +93,10 @@ classdef LPModel < handle
                 obj.folderCellArray = varargin{1};
                 obj.numStages = 2;
                 obj.numScenarios = length(obj.folderCellArray);
-                obj.timePeriods = varargin{2};
+                obj.numYears = varargin{2};
                 obj.timeLag = varargin{3};
-                obj.firstStagePeriods = varargin{4};
+                obj.timePeriods = obj.numYears * obj.timeLag;
+                obj.firstStagePeriods = varargin{4} * obj.timeLag;
                 obj.SetBlankSecondStage;
                 obj.GenerateDataFromExcel;
             else

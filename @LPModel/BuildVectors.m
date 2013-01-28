@@ -23,13 +23,49 @@ for ii=1:numFiles
     
 end
 
+f = find(ub==-1);
+ub(f) = Inf(size(f));
+
+if obj.timeLag ~= 1
+    assert(obj.timeLag == 12);
+    
+    numVariablesPerPeriod = size(costVector,1);
+    numConstraintsPerPeriod = size(RHS,1);
+    
+    assert( size(lb,1) == numVariablesPerPeriod );
+    assert( size(ub,1) == numVariablesPerPeriod );
+    
+    costExp = zeros( numVariablesPerPeriod, obj.timePeriods, numFiles );
+    rhsExp = zeros( numConstraintsPerPeriod, obj.timePeriods, numFiles );
+    lbExp = zeros( numVariablesPerPeriod, obj.timePeriods, numFiles );
+    ubExp = zeros( numVariablesPerPeriod, obj.timePeriods, numFiles );
+    
+    for ff = 1:numFiles
+        sf = xlsread( strrep(cellInputFile{ff},'Inputs','sf'),'sf' );
+        
+        for jj = 1:obj.numYears
+            for ii = 1:obj.timeLag
+                kk = (jj-1)*obj.timeLag + ii;
+                costExp(:,kk,ff) = costVector(:,jj,ff);
+                ubExp(:,kk,ff) = ub(:,jj,ff) / obj.timeLag;
+                lbExp(:,kk,ff) = lb(:,jj,ff) / obj.timeLag;
+                
+                rhsExp(1:15,kk,ff) = RHS(1:15,jj,ff) / obj.timeLag;
+                rhsExp(16:end,kk,ff) = RHS(16:end,jj,ff) .* sf(ii,1);
+                rhsExp(64:100,kk,ff) = RHS(64:100,jj,ff) / obj.timeLag;
+            end
+        end
+        costVector = costExp;
+        RHS = rhsExp;
+        lb = lbExp;
+        ub = ubExp;
+    end
+end
+
 % if max(abs([size(cost,2),size(ub,2),size(lb,2),size(RHS,2)]-obj.timePeriods)) > 0
 if obj.timePeriods > min([size(costVector,2),size(ub,2),size(lb,2),size(RHS,2)])
     error('Request for more periods than data provides');
 end
-
-f = find(ub==-1);
-ub(f) = Inf(size(f));
 
 costVector = costVector(:,1:obj.timePeriods,:);
 ub = ub(:,1:obj.timePeriods,:);
@@ -56,7 +92,7 @@ for ii=1:numFiles
     end
     b2(:,ii) = b2t(:);
     
-
+    
     UB1t = ub(:,1:obj.firstStagePeriods,ii);
     UB1(:,ii) = UB1t(:);
     UB2t = ub(:,obj.firstStagePeriods+1:end,ii);
