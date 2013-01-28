@@ -9,7 +9,9 @@ for ii=1:length(dirs)
     clear lp;
     lp = LPModel(inputLocation,Period,timeLag);
     [Q fval] = linprog( lp.c, [], [], lp.A, lp.b, lp.l, lp.u );
-    Q = roundn(Q',-2);
+%     Q = roundn(Q',-2);
+    Q = lp.ReadResults(Q,[inputLocation 'Inputs.xlsx']);
+    
     alicia = load([inputLocation,'orig_variables.mat']);
     assert(nnz(lp.A ~= alicia.A_full) == 0)
     assertEqual(lp.b,alicia.b_vec)
@@ -18,5 +20,6 @@ for ii=1:length(dirs)
     assertEqual(lp.u,alicia.UB)
     assertEqual(Q,alicia.Q)
     assertEqual(fval,alicia.fval)
+    assertEqual(lp.Final,alicia.Final)
 end
 

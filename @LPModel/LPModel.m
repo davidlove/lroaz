@@ -5,9 +5,6 @@
 
 classdef LPModel < handle
     
-    properties
-    end
-    
 %     First stage/single stage LP matrices
     properties (GetAccess=public, SetAccess=private)
         c
@@ -16,9 +13,7 @@ classdef LPModel < handle
         l
         u
         variableNames
-        Nr
-        Nc
-        Zones
+        Final
     end
     
 %     Second stage LP matrices
@@ -39,6 +34,21 @@ classdef LPModel < handle
         timeLag
         firstStagePeriods
         folderCellArray
+    end
+    
+%     Leftover properties
+    properties (Access=private)
+        Nr
+        Nc
+        Zones
+        fullCostVector
+    end
+    
+%     Excel writing parameters
+    properties (Access=private)
+        writeToExcel = false;
+        Question1 = 2;
+        prompt = 2;
     end
     
     methods
@@ -135,7 +145,8 @@ classdef LPModel < handle
                         obj.SetB(-A_full_temp(obj.firstStagePeriods*rows+1:end,1:obj.firstStagePeriods*cols),omega);
                     end
             end
-            [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,cost] = obj.BuildVectors(cellInputFile);
+            [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,obj.fullCostVector] ...
+                = obj.BuildVectors(cellInputFile);
             obj.Setb(b1);
             obj.Setl(LB1);
             obj.Setu(UB1);
@@ -151,7 +162,6 @@ classdef LPModel < handle
         end
                 
     end
-    
     
 %     Setting and Accessing Routines
     methods (Access=public)

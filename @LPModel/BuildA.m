@@ -7,6 +7,41 @@ disp('Loading Data...');
 Name.user = text(3:end,1);
 Name.source = text(1,4:end);
 
+%% Clear inputs file if connections have been altared
+
+if obj.writeToExcel
+    obj.Question1 = input('Has the connection matrix changed?  Yes=1  No=2 :');
+    if obj.Question1 == 1
+        blank = cell(1000,1);
+        
+        % Document old variable names in excel for comparison to new
+        [~,str] = xlsread('InputFile','b_vec','B:B');
+        str(1) = {'Old'};
+        xlswrite('InputFile',blank,'b_vec','A');
+        xlswrite('InputFile',str,'b_vec','A');
+        xlswrite('InputFile',blank,'b_vec','B2');
+        
+        [~,str] = xlsread('InputFile','Upper Bounds','B:B');
+        str(1) = {'Old'};
+        xlswrite('InputFile',blank,'Upper Bounds','A');
+        xlswrite('InputFile',str,'Upper Bounds','A');
+        xlswrite('InputFile',blank,'Upper Bounds','B2');
+        
+        xlswrite('InputFile',blank,'Lower Bounds','A');
+        xlswrite('InputFile',str,'Lower Bounds','A');
+        xlswrite('InputFile',blank,'Lower Bounds','B2');
+        
+        xlswrite('InputFile',blank,'Costs','A');
+        xlswrite('InputFile',str,'Costs','A');
+        xlswrite('InputFile',blank,'Costs','B2');
+        
+        xlswrite('InputFile',blank,'kWh','A');
+        xlswrite('InputFile',str,'kWh','A');
+        xlswrite('InputFile',blank,'kWh','B2');
+        sound(y, Fs);
+    end
+end
+
 %% Arrange Connection Matrix by type and zone
 
 disp('Arranging Connection Matrix...');
@@ -27,7 +62,7 @@ PMU  = 10; NPMU = 11; PIN   = 12;
 NPIN = 13; PAG  = 14; NPAG  = 15;
 
 %preallocate
-gwN   = 0; wwtpN = 0; swN    = 0; 
+gwN   = 0; wwtpN = 0; swN    = 0;
 wtpN  = 0; dmyN  = 0; rchrgN = 0;
 pN    = 0; npN   = 0; rtrnN  = 0;
 
@@ -104,7 +139,7 @@ assert(numArcs == sum(sum(Con==1)));
 
 xa = 0;
 xb = 0;
-% xd = 0;
+xd = 0;
 zuser = zeros(size(Con));
 userID = cell(size(Name.user));
 user_zone = zeros(size(Zones));
@@ -120,15 +155,15 @@ for xc = 1:max(Zones)
             userID(xa,1) = Name.user(xe);
             user_zone(xa,1) = Zones(xe);
             user_type(xa,1) = userTyp(xe);
-%             if userTyp(xe) == pmu
-%                 xd = xd + 1;
-%                 ret(xd,zones_new(xa,1)) = 0.98;
-%                 retsourceID(xd,1) = userID(xa,1);
-%             elseif userTyp(xe) == pin
-%                 xd = xd + 1;
-%                 ret(xd,zones_new(xa,1)) = 0.4;
-%                 retsourceID(xd,1) = userID(xa,1);
-%             end
+            if userTyp(xe) == PMU
+                xd = xd + 1;
+                ret(xd,user_zone(xa,1)) = 0.98;
+                retsourceID(xd,1) = userID(xa,1);
+            elseif userTyp(xe) == PIN
+                xd = xd + 1;
+                ret(xd,user_zone(xa,1)) = 0.4;
+                retsourceID(xd,1) = userID(xa,1);
+            end
         end
     end
 end
@@ -136,37 +171,39 @@ end
 
 Con = zuser; % resorted connection matrix
 Zones = user_zone;
-% ret = ret(:,2:end);
+ret = ret(:,2:end);
 
 
 %% Check Return Matrix
 
-% prompt = input('Does Return Matrix need to be updated? Yes=1  No=2:  ');
-% if prompt == 1 % input default values
-%     blank = cell(100,100);
-%     xlswrite(InputFile,blank,'Returns','A1');
-%     Return_Matrix = ret;
-%     ret = num2cell(ret);
-%     ret = vertcat(rtrnID,ret);
-%     b = {[]};
-%     retsourceID = vertcat(b,retsourceID);
-%     Return_Write = horzcat(retsourceID,ret);
-%     xlswrite(InputFile,Return_Write,'Returns')
-%     disp('Are any returns other than default values?');
-%     disp('');
-%     question = input('Yes=1  No=2  : ');
-%     if question == 1 % modify defaults
-%         disp('Revise LP_Order excel file then save and close.');
-%         question = input('Enter 1 when complete: ');
-%         if question == 1
-%             Return_Matrix = xlsread(InputFile,'Returns');
-%         end
-%     else Return_Matrix = xlsread(InputFile,'Returns');% Use defaults
-%     end
-% else 
-Return_Matrix = xlsread(InputFile,'Returns'); % Use previous values
-% end
-%% preallocate
+if obj.writeToExcel && ...
+        input('Does Return Matrix need to be updated? Yes=1  No=2:  ') == 1;
+    % if prompt == 1 % input default values
+    blank = cell(100,100);
+    xlswrite(InputFile,blank,'Returns','A1');
+    Return_Matrix = ret;
+    ret = num2cell(ret);
+    ret = vertcat(rtrnID,ret);
+    b = {[]};
+    retsourceID = vertcat(b,retsourceID);
+    Return_Write = horzcat(retsourceID,ret);
+    xlswrite(InputFile,Return_Write,'Returns')
+    disp('Are any returns other than default values?');
+    disp('');
+    question = input('Yes=1  No=2  : ');
+    if question == 1 % modify defaults
+        disp('Revise LP_Order excel file then save and close.');
+        question = input('Enter 1 when complete: ');
+        if question == 1
+            Return_Matrix = xlsread(InputFile,'Returns');
+        end
+    else
+        Return_Matrix = xlsread(InputFile,'Returns');% Use defaults
+    end
+else
+    Return_Matrix = xlsread(InputFile,'Returns'); % Use previous values
+end
+% preallocate
 disp('preallocating...');
 
 A = zeros(userN*2+ST,sourceN*userN+userN+sourceN*2+1);
@@ -271,7 +308,7 @@ for xd = 1:sourceN % For each source term
             
             switch source_type
                 % gw source conditions
-                case GW                    
+                case GW
                     A(xr,xa) = 1; % user inflow
                     A(xe,xa) = -Loss_percentage;
                     Nr(xe,1) = strcat(xh,'-Loss');
@@ -284,7 +321,7 @@ for xd = 1:sourceN % For each source term
                     Nc(1,xu) = strcat(xg,'-strg'); % source loss ID
                     A_st(gw_row,xu) = 1; % next period storage carry over
                     
-                % wwtp source conditions
+                    % wwtp source conditions
                 case WWTP
                     
                     switch user_type(xr)
@@ -328,7 +365,7 @@ for xd = 1:sourceN % For each source term
                                 ' direct distribution case.']);
                     end
                     
-                % surface water conditions
+                    % surface water conditions
                 case SW
                     if xj ~= RCHRG %(recharge user)
                         A(xr,xa) = 1; % user inflow from sw
@@ -345,10 +382,10 @@ for xd = 1:sourceN % For each source term
                     Nc(1,xu+sourceN) = strcat(xg,'-DSflow');
                     Nr(sw_row,1) = xg;
                     
-                % wtp conditions/ reservoir/ intercept
-                case WTP                    
+                    % wtp conditions/ reservoir/ intercept
+                case WTP
                     A(xr,xa) = 1; % user inflow
-                
+                    
                     % for IPR intercept/potable return
                     if xj == PMU || xj == PIN
                         A(xr-1,xa) = 0.98; % user inflow
@@ -365,14 +402,14 @@ for xd = 1:sourceN % For each source term
                     
                     A(index(xo),xa) = -1; % source outflow
                     
-                % dummy source conditions
+                    % dummy source conditions
                 case DMY
                     A(xr,xa) = 1; % user inflow from dmy source
                     
-                % recharge conditions
+                    % recharge conditions
                 case RCHRG
                     A(xr,xa) = 1; % user inflow
-                
+                    
                     if strncmpi(sourceID(xd),'RO',2) == 1
                         if strncmpi(userID(xr),'DemNP',5) == 1
                             A(xe,xa) = -Loss_percentage;
@@ -398,7 +435,7 @@ for xd = 1:sourceN % For each source term
                         A_st(index,xu) = 1; % next period storage carry over
                     end
                     
-                % potable zone source
+                    % potable zone source
                 case P
                     
                     A(xr,xa) = 1; % user inflow from zonal main
@@ -414,7 +451,7 @@ for xd = 1:sourceN % For each source term
                         Nr(index+xk) = strcat(userID(index),'-Loss');
                     end
                     
-                % non-potable zone source
+                    % non-potable zone source
                 case NP
                     
                     A(xr,xa) = 1; % user inflow from zonal main
@@ -422,7 +459,7 @@ for xd = 1:sourceN % For each source term
                     Nr(xe,1) = strcat(xh,'-Loss');
                     A(index,xa) = -1; % source outflow
                     
-                % return zone source
+                    % return zone source
                 case RTRN
                     
                     A(xr,xa) = 1; % user inflow from zonal main
