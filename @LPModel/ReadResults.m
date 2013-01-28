@@ -9,7 +9,7 @@ Var_name = obj.variableNames;
 cost = obj.fullCostVector;
 
 inputFile = [inputLocation,'Inputs.xlsx'];
-solutionFile = [inputLocation,'Solutions.xlsx'];
+solutionFile = [inputLocation,'Solution.xlsx'];
 
 %% Write Variable Names to Input file
 
@@ -226,7 +226,7 @@ if obj.writeToExcel
         xlswrite(solutionFile,obj.Final,'Final Stats','B5');
     end
 end
-sound(obj.y, obj.Fs);
+% sound(obj.y, obj.Fs);
 % toc;
 % xf = toc;
 Flow = Flow(:,2:end);

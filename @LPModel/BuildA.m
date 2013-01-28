@@ -1,4 +1,4 @@
-function [A,A_st,A_lag,Nr,Nc,Zones] = BuildA(obj, ConnectionsFile, InputFile)
+function [A,A_st,A_lag,Nr,Nc,Zones] = BuildA(obj, connectionsFile, inputFile)
 
 % BuildA constructs the submatrices A, A_st and A_lag, as well as counts
 % the number of Zones, and builds cell arrays of names Nr (names of
@@ -8,7 +8,7 @@ function [A,A_st,A_lag,Nr,Nc,Zones] = BuildA(obj, ConnectionsFile, InputFile)
 %% Load Data
 disp('Loading Data...');
 
-[Con, text] = xlsread(ConnectionsFile,'Connections'); % System Connection Matrix
+[Con, text] = xlsread(connectionsFile,'Connections'); % System Connection Matrix
 Name.user = text(3:end,1);
 Name.source = text(1,4:end);
 
@@ -20,29 +20,29 @@ if obj.writeToExcel
         blank = cell(1000,1);
         
         % Document old variable names in excel for comparison to new
-        [~,str] = xlsread('InputFile','b_vec','B:B');
+        [~,str] = xlsread(inputFile,'b_vec','B:B');
         str(1) = {'Old'};
-        xlswrite('InputFile',blank,'b_vec','A');
-        xlswrite('InputFile',str,'b_vec','A');
-        xlswrite('InputFile',blank,'b_vec','B2');
+        xlswrite(inputFile,blank,'b_vec','A');
+        xlswrite(inputFile,str,'b_vec','A');
+        xlswrite(inputFile,blank,'b_vec','B2');
         
-        [~,str] = xlsread('InputFile','Upper Bounds','B:B');
+        [~,str] = xlsread(inputFile,'Upper Bounds','B:B');
         str(1) = {'Old'};
-        xlswrite('InputFile',blank,'Upper Bounds','A');
-        xlswrite('InputFile',str,'Upper Bounds','A');
-        xlswrite('InputFile',blank,'Upper Bounds','B2');
+        xlswrite(inputFile,blank,'Upper Bounds','A');
+        xlswrite(inputFile,str,'Upper Bounds','A');
+        xlswrite(inputFile,blank,'Upper Bounds','B2');
         
-        xlswrite('InputFile',blank,'Lower Bounds','A');
-        xlswrite('InputFile',str,'Lower Bounds','A');
-        xlswrite('InputFile',blank,'Lower Bounds','B2');
+        xlswrite(inputFile,blank,'Lower Bounds','A');
+        xlswrite(inputFile,str,'Lower Bounds','A');
+        xlswrite(inputFile,blank,'Lower Bounds','B2');
         
-        xlswrite('InputFile',blank,'Costs','A');
-        xlswrite('InputFile',str,'Costs','A');
-        xlswrite('InputFile',blank,'Costs','B2');
+        xlswrite(inputFile,blank,'Costs','A');
+        xlswrite(inputFile,str,'Costs','A');
+        xlswrite(inputFile,blank,'Costs','B2');
         
-        xlswrite('InputFile',blank,'kWh','A');
-        xlswrite('InputFile',str,'kWh','A');
-        xlswrite('InputFile',blank,'kWh','B2');
+        xlswrite(inputFile,blank,'kWh','A');
+        xlswrite(inputFile,str,'kWh','A');
+        xlswrite(inputFile,blank,'kWh','B2');
         sound(obj.y, obj.Fs);
     end
 end
@@ -185,14 +185,14 @@ if obj.writeToExcel && ...
         input('Does Return Matrix need to be updated? Yes=1  No=2:  ') == 1;
     % if prompt == 1 % input default values
     blank = cell(100,100);
-    xlswrite(InputFile,blank,'Returns','A1');
+    xlswrite(inputFile,blank,'Returns','A1');
     Return_Matrix = ret;
     ret = num2cell(ret);
     ret = vertcat(rtrnID,ret);
     b = {[]};
     retsourceID = vertcat(b,retsourceID);
     Return_Write = horzcat(retsourceID,ret);
-    xlswrite(InputFile,Return_Write,'Returns')
+    xlswrite(inputFile,Return_Write,'Returns')
     disp('Are any returns other than default values?');
     disp('');
     question = input('Yes=1  No=2  : ');
@@ -200,13 +200,13 @@ if obj.writeToExcel && ...
         disp('Revise LP_Order excel file then save and close.');
         question = input('Enter 1 when complete: ');
         if question == 1
-            Return_Matrix = xlsread(InputFile,'Returns');
+            Return_Matrix = xlsread(inputFile,'Returns');
         end
     else
-        Return_Matrix = xlsread(InputFile,'Returns');% Use defaults
+        Return_Matrix = xlsread(inputFile,'Returns');% Use defaults
     end
 else
-    Return_Matrix = xlsread(InputFile,'Returns'); % Use previous values
+    Return_Matrix = xlsread(inputFile,'Returns'); % Use previous values
 end
 % preallocate
 disp('preallocating...');
