@@ -1,4 +1,4 @@
-function Q = ReadResults(obj,Q,InputFile,solutionFile)
+function Q = ReadResults(obj,Q,inputLocation)
 
 % ReadResults runs Alicia's code to understand the details of the solutions
 % provided by the linear program
@@ -8,15 +8,18 @@ function Q = ReadResults(obj,Q,InputFile,solutionFile)
 Var_name = obj.variableNames;
 cost = obj.fullCostVector;
 
+inputFile = [inputLocation,'Inputs.xlsx'];
+solutionFile = [inputLocation,'Solutions.xlsx'];
+
 %% Write Variable Names to Input file
 
 if obj.writeToExcel && obj.Question1 == 1
     disp('Updating Input file variables...');
     
-    xlswrite(InputFile,Var_name,'Costs','B2');
-    xlswrite(InputFile,Var_name,'Upper Bounds','B2');
-    xlswrite(InputFile,Var_name,'Lower Bounds','B2');
-    xlswrite(InputFile,Var_name,'kWh','B2');
+    xlswrite(inputFile,Var_name,'Costs','B2');
+    xlswrite(inputFile,Var_name,'Upper Bounds','B2');
+    xlswrite(inputFile,Var_name,'Lower Bounds','B2');
+    xlswrite(inputFile,Var_name,'kWh','B2');
     sound(y, Fs);
     
     Question2 = input('Enter 1 after "Inputs" file has been updated:  ');
@@ -131,7 +134,7 @@ Potable_Storage = sum(sum(Flow(xa,end)));
 
 % Energy Consumption
 
-kWh = xlsread(InputFile,'kWh');
+kWh = xlsread(inputFile,'kWh');
 
 kWh = kWh(2:end,:);
 Energy = zeros(size(Flow));

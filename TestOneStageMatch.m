@@ -10,7 +10,7 @@ for ii=1:length(dirs)
     lp = LPModel(inputLocation,Period,timeLag);
     [Q fval] = linprog( lp.c, [], [], lp.A, lp.b, lp.l, lp.u );
 %     Q = roundn(Q',-2);
-    Q = lp.ReadResults(Q,[inputLocation 'Inputs.xlsx']);
+    Q = lp.ReadResults(Q,inputLocation);
     
     alicia = load([inputLocation,'orig_variables.mat']);
     assert(nnz(lp.A ~= alicia.A_full) == 0)
