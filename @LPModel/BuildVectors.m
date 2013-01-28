@@ -1,7 +1,9 @@
 function [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,costOut] = BuildVectors(obj, cellInputFile)
 
-% Reads data from InputFile, splits into vectors for the first and second
-% stages of the problem.
+% BuildVectors builds all vectors (right hand side b, upper bound UB, lower
+% bound LB, cost vector Cost) for both the first and second stages.  First
+% stage vectors names have a 1 at the end, second stage vector names have a
+% 2 at the end.
 
 numFiles = length(cellInputFile);
 

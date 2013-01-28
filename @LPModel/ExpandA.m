@@ -1,5 +1,9 @@
 function A_full = ExpandA(obj,A,A_st,A_lag)
 
+% ExpandA creates the complete constraint matrix for all time periods out
+% of the submatrices A, A_st and A_lag.  These submatrices are copied along
+% the diagonals of A_full
+
 [rowsA,colsA] = size(A);
 
 if obj.timeLag == 1

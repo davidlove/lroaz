@@ -1,5 +1,8 @@
 function Q = ReadResults(obj,Q,InputFile,solutionFile)
 
+% ReadResults runs Alicia's code to understand the details of the solutions
+% provided by the linear program
+
 %% Get needed informationn
 
 Var_name = obj.variableNames;
@@ -22,18 +25,10 @@ end
 
 %% User Constraint Check
 
-Q = Q';
-Sol_Matrix = zeros(size(obj.A));
-
-for xa = 1:size(obj.A,1)
-    xb = obj.A(xa,:);
-    xc = xb.*Q;
-    Sol_Matrix(xa,:) = xb.*Q;
-    xe(xa,1) = sum(xc);
-end
-
-Residuals = round(obj.b - xe);
+Residuals = round(obj.b - obj.A*Q);
 check = any(Residuals);
+
+Q = Q';
 clc;
 
 %% Sort solution by year
@@ -249,4 +244,6 @@ disp(['Number of zones  =  ',num2str(floor(max(obj.Zones)))]);
 disp(' ');
 disp(['Number of arcs  =  ',num2str(length(obj.A)/obj.timePeriods)]);
 disp(' ');
-disp(['obj.timePeriods (yr)  =  ',num2str(obj.timePeriods)]);
+disp(['Number of years (yr)  =  ',num2str(obj.numYears)]);
+disp(' ');
+disp(['Time Periods = ',num2str(obj.timePeriods)]);

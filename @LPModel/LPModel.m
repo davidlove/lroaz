@@ -53,7 +53,6 @@ classdef LPModel < handle
     end
     
     methods
-        
 %         The constructor determines what type of LP model to work with:
 %           1. One-stage explicit model
 %           2. Two-stage explicit model
@@ -106,6 +105,11 @@ classdef LPModel < handle
     end
     
     methods (Access=private)
+        [A,A_st,A_lag,Nr,Nc,Zones] = BuildA(obj, ConnectionsFile, InputFile)
+        [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,costOut] = BuildVectors(obj, cellInputFile)
+        A_full = ExpandA(obj,A,A_st,A_lag)
+        [iOut,jOut,sOut] = GenerateDiagonal( obj, matrixIn, subDiag )
+        
 %         SetBlankSecondStage sets all second stage data to blank arrays of
 %         the correct size
         function SetBlankSecondStage( obj )
@@ -168,6 +172,8 @@ classdef LPModel < handle
     
 %     Setting and Accessing Routines
     methods (Access=public)
+        
+        Q = ReadResults(obj,Q,InputFile,solutionFile)
         
 %         Read in data for the first stage
         function Setc( obj, inc )

@@ -1,5 +1,10 @@
 function [A,A_st,A_lag,Nr,Nc,Zones] = BuildA(obj, ConnectionsFile, InputFile)
 
+% BuildA constructs the submatrices A, A_st and A_lag, as well as counts
+% the number of Zones, and builds cell arrays of names Nr (names of
+% constraint rows), Nc (shortened names of variables) and variableNames
+% (names of variables)
+
 %% Load Data
 disp('Loading Data...');
 
