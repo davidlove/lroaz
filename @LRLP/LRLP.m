@@ -28,6 +28,7 @@ classdef LRLP < handle
         candidateSolution
         bestSolution
         secondBestSolution
+        thetaTrue
         zLower
         zUpper
         objectiveCutsMatrix
@@ -102,12 +103,12 @@ classdef LRLP < handle
             obj.objectiveCutsRHS = [];
             obj.feasibilityCutsMatrix = [];
             obj.feasibilityCutsRHS = [];
-            obj.ResetSecondStageSolutions();
             obj.zLower = -Inf;
             obj.zUpper = Inf;
             
+            obj.ResetSecondStageSolutions();
+            
             % Solve first stage LP
-            obj.candidateSolution = [];
             switch obj.optimizer
                 case 'linprog'
                     [x0,~,exitFlag] = linprog(obj.lpModel.c, ...
@@ -136,8 +137,23 @@ classdef LRLP < handle
                 
         % SolveMasterProblem clears candidate solution and second stage
         % information, then solves the master problem
-        function SolveMasterProblem( obj )
+        function exitFlag = SolveMasterProblem( obj )
+            obj.ResetSecondStageSolutions();
             
+            cMaster = obj.GetMasterc();
+            AMaster = obj.GetMasterA();
+            bMaster = obj.GetMasterb();
+            lMaster = obj.GetMasterl();
+            uMaster = obj.GetMasteru();
+            
+            [obj.candidateSolution,~,exitFlag] = linprog( cMaster, ...
+                [obj.objectiveCutsMatrix; obj.feasibilityCutsMatrix], ...
+                [obj.objectiveCutsRHS   ; obj.feasibilityCutsRHS   ], ...
+                AMaster, bMaster, ...
+                lMaster, uMaster, ...
+                [], [] );
+            
+            assert( length(obj.candidateSolution) == length(obj.bestSolution) );
         end
         
         % SolveSubProblems solves all subproblems, generates second stage
@@ -196,7 +212,22 @@ classdef LRLP < handle
         % GenerateObjectiveCut generates an objective cut and adds it to
         % the matrix
         function GenerateObjectiveCut( obj )
+            intermediateSlope = zeros(obj.lpModel.numScenarios, size(obj.lpModel.A,2)+2);
             
+            for ii=1:obj.lpModel.numScenarios
+                intermediateSlope(ii,:) ...
+                    = [ obj.numObsTotal*obj.Lambda*(obj.secondStageDuals{ii,obj.SLOPE}./(obj.Mu - obj.secondStageValues(ii))), ...
+                        obj.numObsTotal*log(obj.Lambda) + obj.numObsTotal - obj.numObsTotal*log(obj.Mu - obj.secondStageValues(ii)), ...
+                       -obj.numObsTotal*obj.Lambda/(obj.Mu-obj.secondStageValues(ii))];
+            end
+            
+            obj.thetaTrue = obj.GetExpectedSecondStage();
+            
+            slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
+            intercept = obj.thetaTrue - slope*[obj.X;obj.Lambda;obj.Mu];
+            
+            obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; slope, -1];
+            obj.objectiveCutsRHS = [obj.objectiveCutsRHS; -intercept];
         end
         
         % GenerateFeasibilityCut generates a feasibility cut and adds it to
@@ -221,8 +252,8 @@ classdef LRLP < handle
             
             for ii=1:200
                 muOld = mu;
-                mu = mu + (sum(obj.Lambda() * obj.numObsPerScen./(mu - obj.secondStageValues))-1) / ...
-                    sum(obj.Lambda() * obj.numObsPerScen./((mu - obj.secondStageValues).^2));
+                mu = mu + (sum(obj.Lambda() * obj.numObsPerScen'./(mu - obj.secondStageValues))-1) / ...
+                    sum(obj.Lambda() * obj.numObsPerScen'./((mu - obj.secondStageValues).^2));
                 if abs(mu - muOld) < min(mu,muOld)*0.01
                     break
                 end
@@ -230,11 +261,55 @@ classdef LRLP < handle
             obj.bestSolution( obj.MU ) = max(mu, hMax+1);
         end
         
+        % GetExpectedSecondStage gets the expected value of the second
+        % stage in the LRLP-2
+        function outE = GetExpectedSecondStage( obj )
+            outE = obj.numObsPerScen/obj.numObsTotal ...
+                   * ( obj.numObsTotal*obj.Lambda*log(obj.Lambda) ...
+                      - obj.numObsTotal*obj.Lambda*log(obj.Mu-obj.secondStageValues) );
+        end
+        
         % ResetSecondStageSolutions clears the second stage solution values
         % and dual solution information
         function ResetSecondStageSolutions( obj )
-            obj.secondStageValues = -Inf(1,obj.lpModel.numScenarios);
+            obj.secondStageValues = -Inf(obj.lpModel.numScenarios,1);
             obj.secondStageDuals = cell(obj.lpModel.numScenarios,2);
+            obj.candidateSolution = [];
+            obj.thetaTrue = [];
+        end
+        
+        % GetMasterc gets the cost vector for the master problem
+        function cOut = GetMasterc( obj )
+            cOut = [obj.lpModel.c, 0, 0, 0];
+            cOut(obj.LAMBDA) = obj.nBar;
+            cOut(obj.MU) = 1;
+            cOut(obj.THETA) = 1;
+        end
+        
+        % GetMasterA gets the constraint matrix for the master problem
+        function AOut = GetMasterA( obj )
+            AOut = [obj.lpModel.A, zeros( size(obj.lpModel.A,1), 3 )];
+        end
+        
+        % GetMasterb gets the right hand side vector for the master problem
+        function bOut = GetMasterb( obj )
+            bOut = obj.lpModel.b;
+        end
+        
+        % GetMasterl gets the lower bound for the master problem
+        function lOut = GetMasterl( obj )
+            lOut = [obj.lpModel.l; 0; 0; 0];
+            lOut(obj.LAMBDA) = 0;
+            lOut(obj.MU) = -Inf;
+            lOut(obj.THETA) = -Inf;
+        end
+        
+        % GetMasteru gets the upper bound for the master problem
+        function uOut = GetMasteru( obj )
+            uOut = [obj.lpModel.u; 0; 0; 0];
+            uOut(obj.LAMBDA) = Inf;
+            uOut(obj.MU) = Inf;
+            uOut(obj.THETA) = Inf;
         end
         
     end
