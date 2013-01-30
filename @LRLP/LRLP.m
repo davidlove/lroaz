@@ -24,7 +24,7 @@ classdef LRLP < handle
     end
     
 %     Bender's Decomposition Parameters
-    properties (Access=private)
+    properties %(Access=private)
         candidateSolution
         bestSolution
         secondBestSolution
@@ -45,8 +45,8 @@ classdef LRLP < handle
     end
     
 %     Boolean parameters for the algorithm
-    properties (Access=private)
-        muIsFeasible
+    properties %(Access=private)
+        candidateMuIsFeasible
     end
     
     methods
@@ -122,12 +122,12 @@ classdef LRLP < handle
                 error('Could not solve first stage LP')
             end
             
-            obj.bestSolution = [x0; 0; 0; 0];
-            obj.bestSolution(obj.LAMBDA) = 1;
-            obj.bestSolution(obj.MU) = -Inf;
-            obj.bestSolution(obj.THETA) = -Inf;
+            obj.candidateSolution = [x0; 0; 0; 0];
+            obj.candidateSolution(obj.LAMBDA) = 1;
+            obj.candidateSolution(obj.MU) = -Inf;
+            obj.candidateSolution(obj.THETA) = -Inf;
             
-            assert( length(obj.bestSolution) == obj.THETA );
+            assert( length(obj.candidateSolution) == obj.THETA );
             
             obj.SolveSubProblems()
             obj.GenerateCuts()
@@ -162,18 +162,23 @@ classdef LRLP < handle
             for scenarioNum = 1:obj.lpModel.numScenarios
                 obj.SubProblem( scenarioNum );
             end
+            
+            if obj.GetMu( obj.candidateSolution ) > max( obj.secondStageValues )
+                obj.candidateMuIsFeasible = true;
+            else
+                obj.candidateMuIsFeasible = false;
+            end
         end
         
         % GenerateCuts generates objective cut, and if necessary, generates
         % a feasibility cut and finds a good feasible value of mu
         function GenerateCuts( obj )
-            if obj.Mu() <= max( obj.secondStageValues )
-                obj.muIsFeasible = false;
+            if ~obj.candidateMuIsFeasible
                 obj.GenerateFeasibilityCut();
                 obj.FindFeasibleMu();
-            else
-                obj.muIsFeasible = true;
             end
+            
+            obj.thetaTrue = obj.GetExpectedSecondStage();
             
             obj.GenerateObjectiveCut();
         end
@@ -196,9 +201,12 @@ classdef LRLP < handle
             B = obj.lpModel.GetB( inScenNumber );
             l = obj.lpModel.Getl2( inScenNumber );
             u = obj.lpModel.Getu2( inScenNumber );
+            
+            xLocal = obj.GetX( obj.candidateSolution );
+            
             [~,fval,~,~,pi] = linprog(q, ...
                 [],[], ...
-                D, d + B*obj.X(), ...
+                D, d + B*xLocal, ...
                 l, u);
             
             obj.secondStageDuals{ inScenNumber, obj.SLOPE } = -pi.eqlin'*B;
@@ -212,19 +220,21 @@ classdef LRLP < handle
         % GenerateObjectiveCut generates an objective cut and adds it to
         % the matrix
         function GenerateObjectiveCut( obj )
+            xLocal = obj.GetX( obj.candidateSolution );
+            lambdaLocal = obj.GetLambda( obj.candidateSolution );
+            muLocal = obj.GetMu( obj.candidateSolution );
+            
             intermediateSlope = zeros(obj.lpModel.numScenarios, size(obj.lpModel.A,2)+2);
             
             for ii=1:obj.lpModel.numScenarios
                 intermediateSlope(ii,:) ...
-                    = [ obj.numObsTotal*obj.Lambda*(obj.secondStageDuals{ii,obj.SLOPE}./(obj.Mu - obj.secondStageValues(ii))), ...
-                        obj.numObsTotal*log(obj.Lambda) + obj.numObsTotal - obj.numObsTotal*log(obj.Mu - obj.secondStageValues(ii)), ...
-                       -obj.numObsTotal*obj.Lambda/(obj.Mu-obj.secondStageValues(ii))];
+                    = [ obj.numObsTotal*lambdaLocal*(obj.secondStageDuals{ii,obj.SLOPE}./(muLocal - obj.secondStageValues(ii))), ...
+                        obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - obj.secondStageValues(ii)), ...
+                       -obj.numObsTotal*lambdaLocal/(muLocal-obj.secondStageValues(ii))];
             end
             
-            obj.thetaTrue = obj.GetExpectedSecondStage();
-            
             slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
-            intercept = obj.thetaTrue - slope*[obj.X;obj.Lambda;obj.Mu];
+            intercept = obj.thetaTrue - slope*[xLocal;lambdaLocal;muLocal];
             
             obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; slope, -1];
             obj.objectiveCutsRHS = [obj.objectiveCutsRHS; -intercept];
@@ -245,28 +255,33 @@ classdef LRLP < handle
         % FindFeasibleMu uses Newton's Method to find a feasible value of
         % mu
         function FindFeasibleMu( obj )
+            lambdaLocal = obj.GetLambda( obj.candidateSolution );
+            
             [hMax hIndex] = max( obj.secondStageValues );
             mu = obj.lpModel.numScenarios/2 ...
-                * obj.numObsPerScen(hIndex)*obj.Lambda() ...
+                * obj.numObsPerScen(hIndex)*lambdaLocal() ...
                 + hMax;
             
             for ii=1:200
                 muOld = mu;
-                mu = mu + (sum(obj.Lambda() * obj.numObsPerScen'./(mu - obj.secondStageValues))-1) / ...
-                    sum(obj.Lambda() * obj.numObsPerScen'./((mu - obj.secondStageValues).^2));
+                mu = mu + (sum(lambdaLocal() * obj.numObsPerScen'./(mu - obj.secondStageValues))-1) / ...
+                    sum(lambdaLocal() * obj.numObsPerScen'./((mu - obj.secondStageValues).^2));
                 if abs(mu - muOld) < min(mu,muOld)*0.01
                     break
                 end
             end
-            obj.bestSolution( obj.MU ) = max(mu, hMax+1);
+            obj.candidateSolution( obj.MU ) = max(mu, hMax+1);
         end
         
         % GetExpectedSecondStage gets the expected value of the second
         % stage in the LRLP-2
         function outE = GetExpectedSecondStage( obj )
+            lambdaLocal = obj.GetLambda( obj.candidateSolution );
+            muLocal = obj.GetMu( obj.candidateSolution );
+            
             outE = obj.numObsPerScen/obj.numObsTotal ...
-                   * ( obj.numObsTotal*obj.Lambda*log(obj.Lambda) ...
-                      - obj.numObsTotal*obj.Lambda*log(obj.Mu-obj.secondStageValues) );
+                   * ( obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
+                      - obj.numObsTotal*lambdaLocal*log(muLocal-obj.secondStageValues) );
         end
         
         % ResetSecondStageSolutions clears the second stage solution values
@@ -312,23 +327,38 @@ classdef LRLP < handle
             uOut(obj.THETA) = Inf;
         end
         
+        % GetX gets the decisions x from the given solution
+        function outX = GetX( obj, solution )
+            outX = solution( 1:size(obj.lpModel.A,2) );
+        end
+        
+        % GetLambda gets lambda from the given solution
+        function outLambda = GetLambda( obj, solution )
+            outLambda = solution( obj.LAMBDA );
+        end
+        
+        % GetMU gets mu from the given solution
+        function outMu = GetMu( obj, solution )
+            outMu = solution( obj.MU );
+        end
+        
     end
     
 %     Accessor methods
     methods (Access=public)
         % X returns the best value of decisions x
         function outX = X( obj )
-            outX = obj.bestSolution( 1:size(obj.lpModel.A,2) );
+            outX = obj.GetX( obj.bestSolution );
         end
         
         % Lambda returns the best value of lambda
         function outLambda = Lambda( obj )
-            outLambda = obj.bestSolution( obj.LAMBDA );
+            outLambda = obj.GetLambda( obj.bestSolution );
         end
         
         % Mu returns the best value of mu
         function outMu = Mu( obj )
-            outMu = obj.bestSolution( obj.MU );
+            outMu = obj.GetMu( obj.bestSolution );
         end
         
         % NumObjectiveCuts returns the number of objective cuts
