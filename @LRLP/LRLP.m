@@ -157,13 +157,17 @@ classdef LRLP < handle
         end
         
         % SolveSubProblems solves all subproblems, generates second stage
-        % dual information
-        function SolveSubProblems( obj )
-            for scenarioNum = 1:obj.lpModel.numScenarios
-                obj.SubProblem( scenarioNum );
+        % dual information, determines whether mu is feasible
+        function SolveSubProblems( obj, solution )
+            if nargin < 2
+                solution = obj.candidateSolution;
             end
             
-            if obj.GetMu( obj.candidateSolution ) > max( obj.secondStageValues )
+            for scenarioNum = 1:obj.lpModel.numScenarios
+                obj.SubProblem( scenarioNum, solution );
+            end
+            
+            if obj.GetMu( solution ) > max( obj.secondStageValues )
                 obj.candidateMuIsFeasible = true;
             else
                 obj.candidateMuIsFeasible = false;
@@ -178,7 +182,7 @@ classdef LRLP < handle
                 obj.FindFeasibleMu();
             end
             
-            obj.thetaTrue = obj.GetExpectedSecondStage();
+            obj.FindExpectedSecondStage();
             
             obj.GenerateObjectiveCut();
         end
@@ -189,12 +193,49 @@ classdef LRLP < handle
             
         end
         
+        % Plot produces plots of a decision variable, lambda and mu all
+        % together
+        function Plot( obj, variableNumber )
+            if nargin < 2
+                variableNumber = 1;
+            end
+            
+            if variableNumber > size(obj.lpModel.A,2)
+                error('Must choose variable in the original LP model')
+            end
+            
+            origCandidate = obj.candidateSolution;
+            origBest = obj.bestSolution;
+            origSecondBest = obj.secondBestSolution;
+            origSecondDuals = obj.secondStageDuals;
+            origSecondValues = obj.secondStageValues;
+            origTheta = obj.thetaTrue;
+            
+            obj.PlotStep( variableNumber );
+            obj.PlotStep( obj.LAMBDA );
+            obj.PlotStep( obj.MU );
+            
+            % Ensure that no second stage properties while plotting
+            assert( isequal( origCandidate, obj.candidateSolution ) )
+            assert( isequal( origBest, obj.bestSolution ) )
+            assert( isequal( origSecondBest, obj.secondBestSolution ) )
+            assert( isequal( origSecondDuals, obj.secondStageDuals ) )
+            assert( isequal( origSecondValues, obj.secondStageValues ) )
+            assert( isequal( origTheta, obj.thetaTrue ) )
+            
+        end
+        
     end
     
     methods (Access=private)
+        
+        PlotStep( obj, inVariableNumber );
+        PlotFeasibilityCut( obj, inVariableNumber, inCutNumber, ylim );
+        PlotObjectiveCut( obj, inVariableNumber, inCutNumber, inBounds )
+        
         % SubProblem solves an individual subproblem, updating the optimal
         % value and dual solution to the sub problem
-        function SubProblem( obj, inScenNumber )
+        function SubProblem( obj, inScenNumber, inSolution )
             q = obj.lpModel.Getq( inScenNumber );
             D = obj.lpModel.GetD( inScenNumber );
             d = obj.lpModel.Getd( inScenNumber );
@@ -202,7 +243,7 @@ classdef LRLP < handle
             l = obj.lpModel.Getl2( inScenNumber );
             u = obj.lpModel.Getu2( inScenNumber );
             
-            xLocal = obj.GetX( obj.candidateSolution );
+            xLocal = obj.GetX( inSolution );
             
             [~,fval,~,~,pi] = linprog(q, ...
                 [],[], ...
@@ -273,13 +314,17 @@ classdef LRLP < handle
             obj.candidateSolution( obj.MU ) = max(mu, hMax+1);
         end
         
-        % GetExpectedSecondStage gets the expected value of the second
+        % FindExpectedSecondStage gets the expected value of the second
         % stage in the LRLP-2
-        function outE = GetExpectedSecondStage( obj )
-            lambdaLocal = obj.GetLambda( obj.candidateSolution );
-            muLocal = obj.GetMu( obj.candidateSolution );
+        function FindExpectedSecondStage( obj, inSolution )
+            if nargin < 2
+                inSolution = obj.candidateSolution;
+            end
             
-            outE = obj.numObsPerScen/obj.numObsTotal ...
+            lambdaLocal = obj.GetLambda( inSolution );
+            muLocal = obj.GetMu( inSolution );
+            
+            obj.thetaTrue = obj.numObsPerScen/obj.numObsTotal ...
                    * ( obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
                       - obj.numObsTotal*lambdaLocal*log(muLocal-obj.secondStageValues) );
         end
