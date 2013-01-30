@@ -70,15 +70,15 @@ classdef LPModel < handle
                     case '1 stage'
                         obj.numStages = 1;
                         obj.numScenarios = 0;
-                        obj.timePeriods = 0;
-                        obj.timeLag = 0;
-                        obj.firstStagePeriods = 0;
+                        obj.timePeriods = [];
+                        obj.timeLag = [];
+                        obj.firstStagePeriods = [];
                     case '2 stage'
                         obj.numStages = 2;
                         obj.numScenarios = varargin{2};
-                        obj.timePeriods = 0;
-                        obj.timeLag = 0;
-                        obj.firstStagePeriods = 0;
+                        obj.timePeriods = [];
+                        obj.timeLag = [];
+                        obj.firstStagePeriods = [];
                         obj.SetBlankSecondStage;
                     otherwise
                         obj.folderCellArray = { varargin{1} };
