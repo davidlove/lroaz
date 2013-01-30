@@ -72,8 +72,10 @@ for cc=1:obj.NumFeasibilityCuts()
     obj.PlotFeasibilityCut( inVariableNumber, cc, yl );
 end
 
-plot(x0,obj.zLower,'ko', 'MarkerSize',8)
-plot([-1,1],[obj.zUpper obj.zUpper],'k', [x0 x0],[obj.zLower obj.zUpper],'r', 'LineWidth',2)
+% plot(x0,obj.zLower,'ko', 'MarkerSize',8)
+plot(x0,cMaster*obj.candidateSolution,'ko', 'MarkerSize',8)
+plot(varPlot([1,end]),[obj.zUpper obj.zUpper],'k', ...
+    [x0 x0],[obj.zLower obj.zUpper],'r', 'LineWidth',2)
 
 xlim(varPlot([1,end]))
 ylim(yl)

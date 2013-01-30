@@ -4,7 +4,7 @@
 
 classdef LRLP < handle
     
-%     Problem Parameters
+    %     Problem Parameters
     properties (GetAccess=public, SetAccess=immutable)
         lpModel
         gammaPrime
@@ -12,9 +12,16 @@ classdef LRLP < handle
         numObsTotal
         nBar
         optimizer
+        objectiveTolerance
+        probabilityTolerance
+        trustRegionRhoBound
+        trustRegionScaleDown
+        trustRegionScaleUp
+        trustRegionEta
+        trustRegionRatio
     end
     
-%     Enumeration Parameters
+    %     Enumeration Parameters
     properties (GetAccess=private, SetAccess=immutable)
         LAMBDA
         MU
@@ -23,7 +30,7 @@ classdef LRLP < handle
         INTERCEPT
     end
     
-%     Bender's Decomposition Parameters
+    %     Bender's Decomposition Parameters
     properties %(Access=private)
         candidateSolution
         bestSolution
@@ -37,16 +44,25 @@ classdef LRLP < handle
         feasibilityCutsRHS
         secondStageValues
         secondStageDuals
+        trustRegionSize
+        trustRegionLower
+        trustRegionUpper
+        trustRegionRho
     end
     
-%     LRLP Solution Parameters
+    %     LRLP Solution Parameters
     properties (GetAccess=public, SetAccess=private)
+        currentObjectiveTolerance
+        currentProbabilityTolerance
         pWorst
     end
     
-%     Boolean parameters for the algorithm
+    %     Boolean parameters for the algorithm
     properties %(Access=private)
         candidateMuIsFeasible
+        trustRegionInterior
+        newSolutionAccepted
+        zLowerUpdated
     end
     
     methods
@@ -86,6 +102,17 @@ classdef LRLP < handle
                 - log(obj.gammaPrime);
             obj.optimizer = inOptimizer;
             
+            obj.objectiveTolerance = 1e-5;
+            obj.probabilityTolerance = 1e-3;
+            
+            obj.trustRegionRhoBound = 1/4;
+            obj.trustRegionScaleDown = 1/4;
+            obj.trustRegionScaleUp = 3;
+            obj.trustRegionEta = 1/5;
+            obj.trustRegionRatio = 0.99;
+            
+            assert( obj.trustRegionEta <= obj.trustRegionRhoBound )
+            
             obj.LAMBDA = size( obj.lpModel.A, 2 ) + 1;
             obj.MU = obj.LAMBDA + 1;
             obj.THETA = obj.MU + 1;
@@ -97,7 +124,7 @@ classdef LRLP < handle
         end
         
         % InitializeBenders initializes all Bender's Decomposition
-        % parameters 
+        % parameters
         function InitializeBenders( obj )
             obj.objectiveCutsMatrix = [];
             obj.objectiveCutsRHS = [];
@@ -106,7 +133,11 @@ classdef LRLP < handle
             obj.zLower = -Inf;
             obj.zUpper = Inf;
             
+            obj.bestSolution = [];
+            obj.secondBestSolution = [];
+            
             obj.ResetSecondStageSolutions();
+            obj.newSolutionAccepted = true;
             
             % Solve first stage LP
             switch obj.optimizer
@@ -122,6 +153,8 @@ classdef LRLP < handle
                 error('Could not solve first stage LP')
             end
             
+            obj.trustRegionSize = 100*max(abs(x0));
+            
             obj.candidateSolution = [x0; 0; 0; 0];
             obj.candidateSolution(obj.LAMBDA) = 1;
             obj.candidateSolution(obj.MU) = -Inf;
@@ -129,14 +162,16 @@ classdef LRLP < handle
             
             assert( length(obj.candidateSolution) == obj.THETA );
             
-            obj.SolveSubProblems()
-            obj.GenerateCuts()
-            obj.UpdateTolerances()
+            obj.SolveSubProblems();
+            obj.GenerateCuts();
+            obj.UpdateBestSolution();
+            obj.UpdateTolerances();
         end
-            
-                
+        
+        
         % SolveMasterProblem clears candidate solution and second stage
-        % information, then solves the master problem
+        % information, solves the master problem and determines whether the
+        % solution is in the interior of the trust region
         function exitFlag = SolveMasterProblem( obj )
             obj.ResetSecondStageSolutions();
             
@@ -154,6 +189,24 @@ classdef LRLP < handle
                 [], [] );
             
             assert( length(obj.candidateSolution) == length(obj.bestSolution) );
+            
+            upperT = ((1+obj.trustRegionRatio)*obj.trustRegionUpper ...
+                + (1-obj.trustRegionRatio)*obj.trustRegionLower) ...
+                / 2;
+            lowerT = ((1-obj.trustRegionRatio)*obj.trustRegionUpper ...
+                + (1+obj.trustRegionRatio)*obj.trustRegionLower) ...
+                / 2;
+            
+            ind = 1:obj.THETA-1;
+            assert( ~any( upperT(ind) - lowerT(ind) ...
+                - obj.trustRegionRatio*( obj.trustRegionUpper(ind) - obj.trustRegionLower(ind) ) ...
+                > 1e-6 ) )
+            assert( ~any( (upperT(ind) + lowerT(ind))/2 ...
+                - (obj.trustRegionUpper(ind) + obj.trustRegionLower(ind))/2 ...
+                > 1e-6 ) )
+            
+            obj.trustRegionInterior = ~(any(lowerT(ind) > obj.candidateSolution(ind)) ...
+                || sum(obj.candidateSolution(ind) > upperT(ind)));
         end
         
         % SolveSubProblems solves all subproblems, generates second stage
@@ -187,10 +240,91 @@ classdef LRLP < handle
             obj.GenerateObjectiveCut();
         end
         
+        % UpdateTrustRegionSize updates the size of the trust region
+        function UpdateTrustRegionSize( obj )
+            obj.CalculateRho();
+            
+            if obj.trustRegionRho < obj.trustRegionRhoBound
+                obj.trustRegionSize = obj.trustRegionScaleDown * obj.trustRegionSize;
+            elseif obj.trustRegionRho > 1-obj.trustRegionRhoBound ...
+                    && ~obj.trustRegionInterior
+                obj.trustRegionSize = obj.trustRegionScaleUp * obj.trustRegionSize;
+            end
+        end
+        
+        % UpdateSolutions updates the best solutions, and the upper and
+        % lower bounds
+        function UpdateSolutions( obj )
+            obj.CalculateRho();
+            
+            if obj.trustRegionRho > obj.trustRegionEta
+                obj.newSolutionAccepted = true;
+                obj.UpdateBestSolution();
+                
+                cMaster = obj.GetMasterc();
+                assert( cMaster*obj.bestSolution <= obj.zUpper )
+                obj.zUpper = cMaster*obj.bestSolution;
+            else
+                obj.newSolutionAccepted = false;
+            end
+            
+            if obj.newSolutionAccepted ...
+                    && obj.candidateMuIsFeasible ...
+                    && obj.trustRegionInterior
+                assert( cMaster*obj.candidateSolution >= obj.zLower )
+                obj.zLowerUpdated = true;
+                obj.zLower = cMaster*obj.candidateSolution;
+            else
+                obj.zLowerUpdated = false;
+            end
+        end
+        
         % UpdateTolerances updates the upper bound on the optimal value and
         % the objective and probability tolerances
         function UpdateTolerances( obj )
+            obj.CalculateProbability();
             
+            if obj.zLower > -Inf
+                obj.currentObjectiveTolerance = (obj.zUpper - obj.zLower) ...
+                    / min(abs(obj.zUpper),abs(obj.zLower));
+            else
+                obj.currentObjectiveTolerance = Inf;
+            end
+            obj.currentProbabilityTolerance = abs(1-sum(obj.pWorst));
+        end
+        
+        function WriteProgress( obj )
+            disp(['Observations: ' num2str(obj.numObsPerScen)])
+            disp([num2str(obj.NumObjectiveCuts) ' objective cuts, '...
+                num2str(obj.NumFeasibilityCuts) ' feasibility cuts.'])
+            
+            if obj.candidateMuIsFeasible
+                disp('No feasibility cut generated')
+            else
+                disp('Feasibility cut generated')
+            end
+            
+            if obj.trustRegionInterior
+                disp('Candidate solution in trust region interior')
+            else
+                disp(['Candidate solution on trust region boundary, '...
+                    'rho = ' num2str(obj.trustRegionRho)])
+            end
+            
+            if obj.newSolutionAccepted
+                disp(['New solution, zupper = ' num2str(obj.zUpper)])
+            else
+                disp('No new solution accepted')
+            end
+            
+            if obj.zLowerUpdated
+                disp(['New lower bound, zlower = ' num2str(obj.zLower)])
+            else
+                disp('No new lower bound found')
+            end
+            
+            disp(['Objective tolerance ' num2str(obj.currentObjectiveTolerance)])
+            disp(['Probability tolerance ' num2str(obj.currentProbabilityTolerance)])
         end
         
         % Plot produces plots of a decision variable, lambda and mu all
@@ -253,8 +387,8 @@ classdef LRLP < handle
             obj.secondStageDuals{ inScenNumber, obj.SLOPE } = -pi.eqlin'*B;
             obj.secondStageDuals{ inScenNumber, obj.INTERCEPT } ...
                 = - pi.eqlin'*d ...
-                  - pi.upper(u<Inf)'*u(u<Inf) ...
-                  - pi.lower(l~=0)'*l(l~=0);
+                - pi.upper(u<Inf)'*u(u<Inf) ...
+                - pi.lower(l~=0)'*l(l~=0);
             obj.secondStageValues( inScenNumber ) = fval;
         end
         
@@ -270,8 +404,8 @@ classdef LRLP < handle
             for ii=1:obj.lpModel.numScenarios
                 intermediateSlope(ii,:) ...
                     = [ obj.numObsTotal*lambdaLocal*(obj.secondStageDuals{ii,obj.SLOPE}./(muLocal - obj.secondStageValues(ii))), ...
-                        obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - obj.secondStageValues(ii)), ...
-                       -obj.numObsTotal*lambdaLocal/(muLocal-obj.secondStageValues(ii))];
+                    obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - obj.secondStageValues(ii)), ...
+                    -obj.numObsTotal*lambdaLocal/(muLocal-obj.secondStageValues(ii))];
             end
             
             slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
@@ -325,8 +459,33 @@ classdef LRLP < handle
             muLocal = obj.GetMu( inSolution );
             
             obj.thetaTrue = obj.numObsPerScen/obj.numObsTotal ...
-                   * ( obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
-                      - obj.numObsTotal*lambdaLocal*log(muLocal-obj.secondStageValues) );
+                * ( obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
+                - obj.numObsTotal*lambdaLocal*log(muLocal-obj.secondStageValues) );
+        end
+        
+        % CalculateRho calculates the value of trustRegionRho
+        function CalculateRho( obj )
+            cMaster = obj.GetMasterc();
+            
+            initialSolution = obj.bestSolution;
+            candidate = obj.candidateSolution;
+            truth = candidate;
+            if ~isempty(obj.thetaTrue)
+                truth(obj.THETA) = obj.thetaTrue;
+            else
+                error('True theta not yet calculated')
+            end
+            
+            obj.trustRegionRho = (cMaster*initialSolution - cMaster*truth) ...
+                / (cMaster*initialSolution - cMaster*candidate);
+        end
+        
+        % CalculateProbabilty calculates the worst case distribution for
+        % the current best solution
+        function CalculateProbability( obj )
+            obj.SolveSubProblems( obj.bestSolution );
+            obj.pWorst = obj.Lambda*obj.numObsPerScen ...
+                ./(obj.Mu-obj.secondStageValues');
         end
         
         % ResetSecondStageSolutions clears the second stage solution values
@@ -336,6 +495,10 @@ classdef LRLP < handle
             obj.secondStageDuals = cell(obj.lpModel.numScenarios,2);
             obj.candidateSolution = [];
             obj.thetaTrue = [];
+            obj.candidateMuIsFeasible = [];
+            obj.trustRegionInterior = [];
+            obj.newSolutionAccepted = [];
+            obj.zLowerUpdated = [];
         end
         
         % GetMasterc gets the cost vector for the master problem
@@ -362,6 +525,11 @@ classdef LRLP < handle
             lOut(obj.LAMBDA) = 0;
             lOut(obj.MU) = -Inf;
             lOut(obj.THETA) = -Inf;
+            
+            obj.trustRegionLower = obj.bestSolution - obj.trustRegionSize;
+            obj.trustRegionLower(obj.THETA) = -Inf;
+            
+            lOut = max( lOut, obj.trustRegionLower );
         end
         
         % GetMasteru gets the upper bound for the master problem
@@ -370,6 +538,21 @@ classdef LRLP < handle
             uOut(obj.LAMBDA) = Inf;
             uOut(obj.MU) = Inf;
             uOut(obj.THETA) = Inf;
+            
+            obj.trustRegionUpper = obj.bestSolution + obj.trustRegionSize;
+            obj.trustRegionUpper(obj.THETA) = Inf;
+            
+            uOut = min( uOut, obj.trustRegionUpper );
+        end
+        
+        % UpdateBestSolution updates the best known solution, using the
+        % true value of theta
+        function UpdateBestSolution( obj )
+            if obj.newSolutionAccepted
+                obj.secondBestSolution = obj.bestSolution;
+                obj.bestSolution = obj.candidateSolution;
+                obj.bestSolution(obj.THETA) = obj.thetaTrue;
+            end
         end
         
         % GetX gets the decisions x from the given solution
@@ -389,7 +572,7 @@ classdef LRLP < handle
         
     end
     
-%     Accessor methods
+    %     Accessor methods
     methods (Access=public)
         % X returns the best value of decisions x
         function outX = X( obj )
@@ -417,5 +600,5 @@ classdef LRLP < handle
         end
         
     end
-        
+    
 end
