@@ -51,6 +51,7 @@ classdef LRLP < handle
         trustRegionLower
         trustRegionUpper
         trustRegionRho
+        optimizerOptions
     end
     
     %     LRLP Solution Parameters
@@ -134,6 +135,10 @@ classdef LRLP < handle
         % InitializeBenders initializes all Bender's Decomposition
         % parameters
         function InitializeBenders( obj )
+            obj.optimizerOptions = optimset( obj.optimizer );
+            obj.optimizerOptions = optimset( obj.optimizerOptions, ...
+                'MaxIter', 85 );
+            
             obj.objectiveCutsMatrix = [];
             obj.objectiveCutsRHS = [];
             obj.feasibilityCutsMatrix = [];
@@ -207,7 +212,9 @@ classdef LRLP < handle
             % Either the optimization failed, or the new solution is better
             % than the old one
             assert( exitFlag ~= 1 || ...
-                cMaster * (obj.bestSolution - obj.candidateSolution) >= 0 )
+                cMaster * (obj.bestSolution - obj.candidateSolution) >= 0, ...
+                ['Actual objective drop = ' ...
+                num2str( cMaster * (obj.bestSolution - obj.candidateSolution) )])
             
 %             disp('LP Bounds:')
 %             disp([lMaster, obj.candidateSolution, uMaster])
@@ -411,6 +418,26 @@ classdef LRLP < handle
             assert( isequal( origSecondValues, obj.secondStageValues ) )
             assert( isequal( origTheta, obj.thetaTrue ) )
             
+        end
+        
+        % DoubleIterations doubles the maximum number of iterations
+        % available to the linear programming solver
+        function DoubleIterations( obj )
+            switch obj.optimizer
+                case 'linprog'
+                    obj.optimizerOptions = optimset( obj.optimizerOptions, ...
+                        'MaxIter', 2*optimget(obj.optimizerOptions,'MaxIter') );
+                otherwise
+                    error(['Unknown optimizer ' obj.optimizer])
+            end
+        end
+        
+        % DeleteOldestCut deletes the oldest objective cut from the matrix
+        % and right hand side vector
+        function DeleteOldestCut( obj )
+            obj.objectiveCutsMatrix = obj.objectiveCutsMatrix(2:end,:);
+            obj.objectiveCutsRHS = obj.objectiveCutsRHS(2:end);
+            assert( ~isempty(obj.objectiveCutsRHS) )
         end
         
     end
