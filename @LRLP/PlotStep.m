@@ -9,21 +9,27 @@ cMaster = obj.GetMasterc();
 lMaster = obj.GetMasterl();
 uMaster = obj.GetMasteru();
 
+
 numPlottedPoints = 41;
 switch inVariableNumber
     case obj.LAMBDA
         varPlot = linspace(0,max(0.2,2*lambda0),numPlottedPoints);
     case obj.MU
-        varPlot = linspace(0,max(10,2*mu0),numPlottedPoints);
+%         varPlot = linspace(0,max(10,2*mu0),numPlottedPoints);
+        varPlot = linspace( lMaster(inVariableNumber)-1, ...
+            uMaster(inVariableNumber)+1, ...
+            numPlottedPoints );
     case obj.THETA
         error('Do not plot with theta')
     otherwise
         if lMaster(inVariableNumber) == -Inf || uMaster(inVariableNumber) == Inf
             error('Plot a variable with finite bounds')
         end
-            varPlot = linspace( lMaster(inVariableNumber), ...
-                uMaster(inVariableNumber), ...
-                numPlottedPoints );
+        lb = obj.lpModel.l(inVariableNumber);
+        ub = obj.lpModel.u(inVariableNumber);
+        varPlot = linspace( max( lMaster(inVariableNumber)-1, lb ), ...
+            min( uMaster(inVariableNumber)+1, ub ), ...
+            numPlottedPoints );
 end
 
 yPlot = zeros(size(varPlot));
@@ -76,6 +82,11 @@ end
 plot(x0,cMaster*obj.candidateSolution,'ko', 'MarkerSize',8)
 plot(varPlot([1,end]),[obj.zUpper obj.zUpper],'k', ...
     [x0 x0],[obj.zLower obj.zUpper],'r', 'LineWidth',2)
+
+% Plot trust region
+plot(obj.trustRegionLower(inVariableNumber)*[1,1], yl, 'k:', ...
+    obj.trustRegionUpper(inVariableNumber)*[1,1], yl, 'k:', ...
+    'LineWidth',2)
 
 xlim(varPlot([1,end]))
 ylim(yl)
