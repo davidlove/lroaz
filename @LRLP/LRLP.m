@@ -189,6 +189,14 @@ classdef LRLP < handle
             lMaster = obj.GetMasterl();
             uMaster = obj.GetMasteru();
             
+            % Best solution should be feasible
+            assert( ~any( abs( AMaster*obj.bestSolution - bMaster ) ...
+                > 1e-6 ) )
+            assert( ~any( obj.objectiveCutsMatrix*obj.bestSolution ...
+                - obj.objectiveCutsRHS > 1e-6 ) )
+            assert( ~any( obj.feasibilityCutsMatrix*obj.bestSolution ...
+                - obj.feasibilityCutsRHS > 1e-6 ) )
+            
             [obj.candidateSolution,~,exitFlag] = linprog( cMaster, ...
                 [obj.objectiveCutsMatrix; obj.feasibilityCutsMatrix], ...
                 [obj.objectiveCutsRHS   ; obj.feasibilityCutsRHS   ], ...
@@ -196,10 +204,15 @@ classdef LRLP < handle
                 lMaster, uMaster, ...
                 [], [] );
             
-            disp('LP Bounds:')
-            disp([lMaster, obj.candidateSolution, uMaster])
-            disp('Trust Region:')
-            disp([obj.trustRegionLower, obj.candidateSolution, obj.trustRegionUpper])
+            % Either the optimization failed, or the new solution is better
+            % than the old one
+            assert( exitFlag ~= 1 || ...
+                cMaster * (obj.bestSolution - obj.candidateSolution) >= 0 )
+            
+%             disp('LP Bounds:')
+%             disp([lMaster, obj.candidateSolution, uMaster])
+%             disp('Trust Region:')
+%             disp([obj.trustRegionLower, obj.candidateSolution, obj.trustRegionUpper])
             
             assert( length(obj.candidateSolution) == length(obj.bestSolution) );
             
@@ -212,14 +225,14 @@ classdef LRLP < handle
             
             ind = 1:obj.THETA-1;
             
-            disp('Best solution:')
-            disp([obj.bestSolution]) 
-            disp('Logical Lower, upper:')
-            disp( [ lowerT(ind) > obj.candidateSolution(ind), ...
-                obj.candidateSolution(ind) > upperT(ind) ] )
-            disp('Logical Conclusion:')
-            disp(~any( lowerT(ind) > obj.candidateSolution(ind) ...
-                | obj.candidateSolution(ind) > upperT(ind) ) )
+%             disp('Best solution:')
+%             disp([obj.bestSolution]) 
+%             disp('Logical Lower, upper:')
+%             disp( [ lowerT(ind) > obj.candidateSolution(ind), ...
+%                 obj.candidateSolution(ind) > upperT(ind) ] )
+%             disp('Logical Conclusion:')
+%             disp(~any( lowerT(ind) > obj.candidateSolution(ind) ...
+%                 | obj.candidateSolution(ind) > upperT(ind) ) )
             
             assert( ~any( upperT(ind) - lowerT(ind) ...
                 - obj.trustRegionRatio*( obj.trustRegionUpper(ind) - obj.trustRegionLower(ind) ) ...
@@ -265,37 +278,32 @@ classdef LRLP < handle
         
         % UpdateTrustRegionSize updates the size of the trust region
         function UpdateTrustRegionSize( obj )
-            obj.CalculateRho();
+            obj.CalculateTrustRegionDecisions();
             
-            if obj.trustRegionRho < obj.trustRegionRhoBound
-                obj.trustRegionSize = obj.trustRegionScaleDown * obj.trustRegionSize;
-                obj.trustRegionScaled = obj.SCALE_DOWN;
-            elseif obj.trustRegionRho > 1-obj.trustRegionRhoBound ...
-                    && ~obj.trustRegionInterior
-                obj.trustRegionSize = obj.trustRegionScaleUp * obj.trustRegionSize;
-                obj.trustRegionScaled = obj.SCALE_UP;
-            else
-                obj.trustRegionScaled = obj.NO_SCALE;
+            switch obj.trustRegionScaled
+                case obj.SCALE_DOWN
+                    obj.trustRegionSize = obj.trustRegionScaleDown * obj.trustRegionSize;
+                case obj.SCALE_UP
+                    obj.trustRegionSize = obj.trustRegionScaleUp * obj.trustRegionSize;
+                case obj.NO_SCALE
+                    % Do nothing
+                otherwise
+                    error(['Unknown trust region scaling result: ' ...
+                        num2str( obj.trustRegionScaled )])
             end
         end
         
         % UpdateSolutions updates the best solutions, and the upper and
         % lower bounds
         function UpdateSolutions( obj )
-            obj.CalculateRho();
+            obj.CalculateTrustRegionDecisions();
             
-            if obj.trustRegionRho > obj.trustRegionEta
-                obj.newSolutionAccepted = true;
-                cMaster = obj.GetMasterc();
-                assert( abs(cMaster*obj.bestSolution - obj.zUpper) ...
-                    <= 1e-6*abs(obj.zUpper) )
+            cMaster = obj.GetMasterc();
+            if obj.newSolutionAccepted
                 obj.UpdateBestSolution();
-                
                 assert( cMaster*obj.bestSolution <= obj.zUpper, ...
                     ['rho = ' num2str(obj.trustRegionRho)])
                 obj.zUpper = cMaster*obj.bestSolution;
-            else
-                obj.newSolutionAccepted = false;
             end
             
             if obj.newSolutionAccepted ...
@@ -324,6 +332,7 @@ classdef LRLP < handle
         end
         
         function WriteProgress( obj )
+            disp(' ')
             disp(['Observations: ' num2str(obj.numObsPerScen)])
             disp([num2str(obj.NumObjectiveCuts) ' objective cuts, '...
                 num2str(obj.NumFeasibilityCuts) ' feasibility cuts.'])
@@ -342,19 +351,19 @@ classdef LRLP < handle
                     'rho = ' num2str(obj.trustRegionRho)])
             end
             
-%             switch obj.trustRegionScaled
-%                 case obj.NO_SCALE
-%                     disp('No change in trust region scale')
-%                 case obj.SCALE_UP
-%                     disp(['Trust region scaled up to ' ...
-%                         num2str(obj.trustRegionSize)])
-%                 case obj.SCALE_DOWN
-%                     disp(['Trust region scaled down to ' ...
-%                         num2str(obj.trustRegionSize)])
-%                 otherwise
-%                     error(['Unknown trust region result ' ...
-%                         num2str(obj.trustRegionScaled)])
-%             end
+            switch obj.trustRegionScaled
+                case obj.NO_SCALE
+                    disp('No change in trust region scale')
+                case obj.SCALE_UP
+                    disp(['Trust region scaled up to ' ...
+                        num2str(obj.trustRegionSize)])
+                case obj.SCALE_DOWN
+                    disp(['Trust region scaled down to ' ...
+                        num2str(obj.trustRegionSize)])
+                otherwise
+                    error(['Unknown trust region result ' ...
+                        num2str(obj.trustRegionScaled)])
+            end
             
             if obj.newSolutionAccepted
                 disp(['New solution, zupper = ' num2str(obj.zUpper)])
@@ -503,6 +512,11 @@ classdef LRLP < handle
                 inSolution = obj.candidateSolution;
             end
             
+            if isempty( obj.candidateMuIsFeasible )
+                error(['Must determine whether candidate mu is feasible ' ...
+                    'before finding expected second stage value'])
+            end
+            
             lambdaLocal = obj.GetLambda( inSolution );
             muLocal = obj.GetMu( inSolution );
             
@@ -512,7 +526,7 @@ classdef LRLP < handle
         end
         
         % CalculateRho calculates the value of trustRegionRho
-        function CalculateRho( obj )
+        function CalculateTrustRegionDecisions( obj )
             cMaster = obj.GetMasterc();
             
             initialSolution = obj.bestSolution;
@@ -524,8 +538,33 @@ classdef LRLP < handle
                 error('True theta not yet calculated')
             end
             
-            obj.trustRegionRho = (cMaster*initialSolution - cMaster*truth) ...
-                / (cMaster*initialSolution - cMaster*candidate);
+            trueDrop = cMaster*(initialSolution - truth);
+            predictedDrop = cMaster*(initialSolution - candidate);
+            
+            assert( predictedDrop >= 0 )
+            
+            if isempty( obj.trustRegionInterior )
+                error( ['Undetermined whether solution exists in trust ' ...
+                    'region interior'])
+            end
+            
+            if trueDrop < obj.trustRegionRhoBound * predictedDrop
+                obj.trustRegionScaled = obj.SCALE_DOWN;
+            elseif trueDrop > (1-obj.trustRegionRhoBound) * predictedDrop ...
+                    && ~obj.trustRegionInterior
+                obj.trustRegionScaled = obj.SCALE_UP;
+            else
+                obj.trustRegionScaled = obj.NO_SCALE;
+            end
+            
+            if trueDrop > obj.trustRegionEta * predictedDrop
+                obj.newSolutionAccepted = true;
+            else
+                obj.newSolutionAccepted = false;
+            end
+            
+%             obj.trustRegionRho = (cMaster*initialSolution - cMaster*truth) ...
+%                 / (cMaster*initialSolution - cMaster*candidate);
         end
         
         % CalculateProbabilty calculates the worst case distribution for
