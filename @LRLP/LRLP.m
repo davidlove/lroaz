@@ -19,6 +19,8 @@ classdef LRLP < handle
         trustRegionScaleUp
         trustRegionEta
         trustRegionRatio
+        trustRegionMinSize
+        trustRegionMaxSize
     end
     
     %     Enumeration Parameters
@@ -130,6 +132,10 @@ classdef LRLP < handle
             obj.SCALE_DOWN = 2;
             
             obj.InitializeBenders();
+            
+            obj.trustRegionMinSize = obj.trustRegionSize / 10;
+            obj.trustRegionMaxSize = obj.trustRegionSize * 100;
+            assert( obj.trustRegionMinSize <= obj.trustRegionMaxSize );
         end
         
         % InitializeBenders initializes all Bender's Decomposition
@@ -209,17 +215,21 @@ classdef LRLP < handle
                 lMaster, uMaster, ...
                 [], [] );
             
-            % Either the optimization failed, or the new solution is better
-            % than the old one
+            % The assertion below SHOULD test that the optimal solution
+            % found by linprog, obj.candidateSolution, is better than the
+            % previous solution, obj.bestSolution, which was shown to be
+            % feasible in the assertions above linprog.  However, Matlab
+            % sometimes DOES NOT FIND a better solution!  This is true even
+            % though Matlab reports optimality conditions are satisfied.
+            % So I am testing that the increase in cost is not too bad, and
+            % setting exitFlag = 0 if the costs increased.
             assert( exitFlag ~= 1 || ...
-                cMaster * (obj.bestSolution - obj.candidateSolution) >= 0, ...
+                cMaster * (obj.bestSolution - obj.candidateSolution) >= -1e-5, ...
                 ['Actual objective drop = ' ...
                 num2str( cMaster * (obj.bestSolution - obj.candidateSolution) )])
-            
-%             disp('LP Bounds:')
-%             disp([lMaster, obj.candidateSolution, uMaster])
-%             disp('Trust Region:')
-%             disp([obj.trustRegionLower, obj.candidateSolution, obj.trustRegionUpper])
+            if cMaster * (obj.bestSolution - obj.candidateSolution) < 0
+                exitFlag = 0;
+            end
             
             assert( length(obj.candidateSolution) == length(obj.bestSolution) );
             
@@ -231,15 +241,6 @@ classdef LRLP < handle
                 / 2;
             
             ind = 1:obj.THETA-1;
-            
-%             disp('Best solution:')
-%             disp([obj.bestSolution]) 
-%             disp('Logical Lower, upper:')
-%             disp( [ lowerT(ind) > obj.candidateSolution(ind), ...
-%                 obj.candidateSolution(ind) > upperT(ind) ] )
-%             disp('Logical Conclusion:')
-%             disp(~any( lowerT(ind) > obj.candidateSolution(ind) ...
-%                 | obj.candidateSolution(ind) > upperT(ind) ) )
             
             assert( ~any( upperT(ind) - lowerT(ind) ...
                 - obj.trustRegionRatio*( obj.trustRegionUpper(ind) - obj.trustRegionLower(ind) ) ...
@@ -289,9 +290,11 @@ classdef LRLP < handle
             
             switch obj.trustRegionScaled
                 case obj.SCALE_DOWN
-                    obj.trustRegionSize = obj.trustRegionScaleDown * obj.trustRegionSize;
+                    obj.trustRegionSize = max( obj.trustRegionMinSize, ...
+                        obj.trustRegionScaleDown * obj.trustRegionSize );
                 case obj.SCALE_UP
-                    obj.trustRegionSize = obj.trustRegionScaleUp * obj.trustRegionSize;
+                    obj.trustRegionSize = min( obj.trustRegionMaxSize, ...
+                        obj.trustRegionScaleUp * obj.trustRegionSize );
                 case obj.NO_SCALE
                     % Do nothing
                 otherwise
@@ -340,6 +343,7 @@ classdef LRLP < handle
         
         function WriteProgress( obj )
             disp(' ')
+            disp(['gamma'' = ' num2str(obj.gammaPrime)])
             disp(['Observations: ' num2str(obj.numObsPerScen)])
             disp([num2str(obj.NumObjectiveCuts) ' objective cuts, '...
                 num2str(obj.NumFeasibilityCuts) ' feasibility cuts.'])
