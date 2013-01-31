@@ -28,6 +28,9 @@ classdef LRLP < handle
         THETA
         SLOPE
         INTERCEPT
+        NO_SCALE
+        SCALE_UP
+        SCALE_DOWN
     end
     
     %     Bender's Decomposition Parameters
@@ -63,6 +66,7 @@ classdef LRLP < handle
         trustRegionInterior
         newSolutionAccepted
         zLowerUpdated
+        trustRegionScaled
     end
     
     methods
@@ -120,6 +124,10 @@ classdef LRLP < handle
             obj.SLOPE = 1;
             obj.INTERCEPT = 2;
             
+            obj.NO_SCALE = 0;
+            obj.SCALE_UP = 1;
+            obj.SCALE_DOWN = 2;
+            
             obj.InitializeBenders();
         end
         
@@ -153,7 +161,7 @@ classdef LRLP < handle
                 error('Could not solve first stage LP')
             end
             
-            obj.trustRegionSize = 100*max(abs(x0));
+            obj.trustRegionSize = 10*max(abs(x0));
             
             obj.candidateSolution = [x0; 0; 0; 0];
             obj.candidateSolution(obj.LAMBDA) = 1;
@@ -188,6 +196,11 @@ classdef LRLP < handle
                 lMaster, uMaster, ...
                 [], [] );
             
+            disp('LP Bounds:')
+            disp([lMaster, obj.candidateSolution, uMaster])
+            disp('Trust Region:')
+            disp([obj.trustRegionLower, obj.candidateSolution, obj.trustRegionUpper])
+            
             assert( length(obj.candidateSolution) == length(obj.bestSolution) );
             
             upperT = ((1+obj.trustRegionRatio)*obj.trustRegionUpper ...
@@ -198,6 +211,16 @@ classdef LRLP < handle
                 / 2;
             
             ind = 1:obj.THETA-1;
+            
+            disp('Best solution:')
+            disp([obj.bestSolution]) 
+            disp('Logical Lower, upper:')
+            disp( [ lowerT(ind) > obj.candidateSolution(ind), ...
+                obj.candidateSolution(ind) > upperT(ind) ] )
+            disp('Logical Conclusion:')
+            disp(~any( lowerT(ind) > obj.candidateSolution(ind) ...
+                | obj.candidateSolution(ind) > upperT(ind) ) )
+            
             assert( ~any( upperT(ind) - lowerT(ind) ...
                 - obj.trustRegionRatio*( obj.trustRegionUpper(ind) - obj.trustRegionLower(ind) ) ...
                 > 1e-6 ) )
@@ -205,8 +228,8 @@ classdef LRLP < handle
                 - (obj.trustRegionUpper(ind) + obj.trustRegionLower(ind))/2 ...
                 > 1e-6 ) )
             
-            obj.trustRegionInterior = ~(any(lowerT(ind) > obj.candidateSolution(ind)) ...
-                || sum(obj.candidateSolution(ind) > upperT(ind)));
+            obj.trustRegionInterior = ~any( lowerT(ind) > obj.candidateSolution(ind) ...
+                | obj.candidateSolution(ind) > upperT(ind) );
         end
         
         % SolveSubProblems solves all subproblems, generates second stage
@@ -246,9 +269,13 @@ classdef LRLP < handle
             
             if obj.trustRegionRho < obj.trustRegionRhoBound
                 obj.trustRegionSize = obj.trustRegionScaleDown * obj.trustRegionSize;
+                obj.trustRegionScaled = obj.SCALE_DOWN;
             elseif obj.trustRegionRho > 1-obj.trustRegionRhoBound ...
                     && ~obj.trustRegionInterior
                 obj.trustRegionSize = obj.trustRegionScaleUp * obj.trustRegionSize;
+                obj.trustRegionScaled = obj.SCALE_UP;
+            else
+                obj.trustRegionScaled = obj.NO_SCALE;
             end
         end
         
@@ -259,10 +286,13 @@ classdef LRLP < handle
             
             if obj.trustRegionRho > obj.trustRegionEta
                 obj.newSolutionAccepted = true;
+                cMaster = obj.GetMasterc();
+                assert( abs(cMaster*obj.bestSolution - obj.zUpper) ...
+                    <= 1e-6*abs(obj.zUpper) )
                 obj.UpdateBestSolution();
                 
-                cMaster = obj.GetMasterc();
-                assert( cMaster*obj.bestSolution <= obj.zUpper )
+                assert( cMaster*obj.bestSolution <= obj.zUpper, ...
+                    ['rho = ' num2str(obj.trustRegionRho)])
                 obj.zUpper = cMaster*obj.bestSolution;
             else
                 obj.newSolutionAccepted = false;
@@ -305,11 +335,26 @@ classdef LRLP < handle
             end
             
             if obj.trustRegionInterior
-                disp('Candidate solution in trust region interior')
+                disp(['Candidate solution in trust region interior, '...
+                    'rho = ' num2str(obj.trustRegionRho)])
             else
                 disp(['Candidate solution on trust region boundary, '...
                     'rho = ' num2str(obj.trustRegionRho)])
             end
+            
+%             switch obj.trustRegionScaled
+%                 case obj.NO_SCALE
+%                     disp('No change in trust region scale')
+%                 case obj.SCALE_UP
+%                     disp(['Trust region scaled up to ' ...
+%                         num2str(obj.trustRegionSize)])
+%                 case obj.SCALE_DOWN
+%                     disp(['Trust region scaled down to ' ...
+%                         num2str(obj.trustRegionSize)])
+%                 otherwise
+%                     error(['Unknown trust region result ' ...
+%                         num2str(obj.trustRegionScaled)])
+%             end
             
             if obj.newSolutionAccepted
                 disp(['New solution, zupper = ' num2str(obj.zUpper)])
@@ -379,10 +424,13 @@ classdef LRLP < handle
             
             xLocal = obj.GetX( inSolution );
             
+            options = optimset('Display','off');
+            
             [~,fval,~,~,pi] = linprog(q, ...
                 [],[], ...
                 D, d + B*xLocal, ...
-                l, u);
+                l, u, ...
+                [], options);
             
             obj.secondStageDuals{ inScenNumber, obj.SLOPE } = -pi.eqlin'*B;
             obj.secondStageDuals{ inScenNumber, obj.INTERCEPT } ...
@@ -491,6 +539,7 @@ classdef LRLP < handle
         % ResetSecondStageSolutions clears the second stage solution values
         % and dual solution information
         function ResetSecondStageSolutions( obj )
+            obj.candidateSolution = [];
             obj.secondStageValues = -Inf(obj.lpModel.numScenarios,1);
             obj.secondStageDuals = cell(obj.lpModel.numScenarios,2);
             obj.candidateSolution = [];
@@ -499,6 +548,7 @@ classdef LRLP < handle
             obj.trustRegionInterior = [];
             obj.newSolutionAccepted = [];
             obj.zLowerUpdated = [];
+            obj.trustRegionScaled = [];
         end
         
         % GetMasterc gets the cost vector for the master problem
