@@ -161,7 +161,7 @@ classdef LRLP < handle
                 error('Could not solve first stage LP')
             end
             
-            obj.trustRegionSize = 10*max(abs(x0));
+            obj.trustRegionSize = 1*max(abs(x0));
             
             obj.candidateSolution = [x0; 0; 0; 0];
             obj.candidateSolution(obj.LAMBDA) = 1;
@@ -541,30 +541,36 @@ classdef LRLP < handle
             trueDrop = cMaster*(initialSolution - truth);
             predictedDrop = cMaster*(initialSolution - candidate);
             
-            assert( predictedDrop >= 0 )
+            % Infeasible candidate solutions might not produce a predicted
+            % drop after they are made feasible
+            assert( ~obj.candidateMuIsFeasible || predictedDrop >= 0 )
             
-            if isempty( obj.trustRegionInterior )
-                error( ['Undetermined whether solution exists in trust ' ...
-                    'region interior'])
-            end
-            
-            if trueDrop < obj.trustRegionRhoBound * predictedDrop
-                obj.trustRegionScaled = obj.SCALE_DOWN;
-            elseif trueDrop > (1-obj.trustRegionRhoBound) * predictedDrop ...
-                    && ~obj.trustRegionInterior
-                obj.trustRegionScaled = obj.SCALE_UP;
+            if obj.candidateMuIsFeasible
+                if isempty( obj.trustRegionInterior )
+                    error( ['Undetermined whether solution exists in trust ' ...
+                        'region interior'])
+                end
+                
+                if trueDrop < obj.trustRegionRhoBound * predictedDrop
+                    obj.trustRegionScaled = obj.SCALE_DOWN;
+                elseif trueDrop > (1-obj.trustRegionRhoBound) * predictedDrop ...
+                        && ~obj.trustRegionInterior
+                    obj.trustRegionScaled = obj.SCALE_UP;
+                else
+                    obj.trustRegionScaled = obj.NO_SCALE;
+                end
+                
+                if trueDrop > obj.trustRegionEta * predictedDrop
+                    obj.newSolutionAccepted = true;
+                else
+                    obj.newSolutionAccepted = false;
+                end
             else
                 obj.trustRegionScaled = obj.NO_SCALE;
-            end
-            
-            if trueDrop > obj.trustRegionEta * predictedDrop
-                obj.newSolutionAccepted = true;
-            else
                 obj.newSolutionAccepted = false;
             end
             
-%             obj.trustRegionRho = (cMaster*initialSolution - cMaster*truth) ...
-%                 / (cMaster*initialSolution - cMaster*candidate);
+            obj.trustRegionRho = trueDrop / predictedDrop;
         end
         
         % CalculateProbabilty calculates the worst case distribution for
