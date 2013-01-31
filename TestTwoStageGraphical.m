@@ -8,13 +8,16 @@ obs = ceil(50*rand(1,4));
 lrlp = LRLP( simpleLP, gp, obs );
 
 while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
-    lrlp.SolveMasterProblem;
+    exitFlag = lrlp.SolveMasterProblem;
+    if exitFlag ~= 1
+        disp(['exitFlag = ' num2str(exitFlag)])
+    end
     lrlp.SolveSubProblems;
     lrlp.GenerateCuts;
-    lrlp.Plot;
 %     lrlp.UpdateTrustRegionSize;
     lrlp.UpdateSolutions;
     lrlp.UpdateTolerances;
     lrlp.WriteProgress;
+%     lrlp.Plot;
     pause(0.5)
 end

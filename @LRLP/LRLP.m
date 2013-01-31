@@ -282,7 +282,7 @@ classdef LRLP < handle
         % UpdateTolerances updates the upper bound on the optimal value and
         % the objective and probability tolerances
         function UpdateTolerances( obj )
-            obj.CalculateProbability();
+            % obj.CalculateProbability();
             
             if obj.zLower > -Inf
                 obj.currentObjectiveTolerance = (obj.zUpper - obj.zLower) ...
@@ -483,7 +483,7 @@ classdef LRLP < handle
         % CalculateProbabilty calculates the worst case distribution for
         % the current best solution
         function CalculateProbability( obj )
-            obj.SolveSubProblems( obj.bestSolution );
+            % obj.SolveSubProblems( obj.bestSolution );
             obj.pWorst = obj.Lambda*obj.numObsPerScen ...
                 ./(obj.Mu-obj.secondStageValues');
         end
@@ -552,6 +552,7 @@ classdef LRLP < handle
                 obj.secondBestSolution = obj.bestSolution;
                 obj.bestSolution = obj.candidateSolution;
                 obj.bestSolution(obj.THETA) = obj.thetaTrue;
+                obj.CalculateProbability();
             end
         end
         
