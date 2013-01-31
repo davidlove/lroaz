@@ -58,9 +58,10 @@ plot(varPlot(imag(yPlot)==0),yPlot(imag(yPlot)==0), ...
     varPlot(imag(yPlot)~=0),abs(imag(yPlot(imag(yPlot)~=0))),'b.', 'LineWidth',2)
 
 yl = ylim;
-if obj.zLower > -Inf
-    yl(1) = (obj.zLower-0.1*yl(2))/(1-0.1);
-end
+% if obj.zLower > -Inf
+%     yl(1) = (obj.zLower-0.1*yl(2))/(1-0.1);
+    yl(1) = (cMaster*obj.candidateSolution-0.1*yl(2))/(1-0.1);
+% end
 % if zupper < Inf && zlower > -Inf
 %     a = 0.85;
 %     b = 0.075;
@@ -79,14 +80,14 @@ for cc=1:obj.NumFeasibilityCuts()
 end
 
 % plot(x0,obj.zLower,'ko', 'MarkerSize',8)
-plot(x0,cMaster*obj.candidateSolution,'ko', 'MarkerSize',8)
+plot(x0,cMaster*obj.candidateSolution,'k*', 'MarkerSize',8)
 plot(varPlot([1,end]),[obj.zUpper obj.zUpper],'k', ...
     [x0 x0],[obj.zLower obj.zUpper],'r', 'LineWidth',2)
 
 % Plot trust region
-plot(obj.trustRegionLower(inVariableNumber)*[1,1], yl, 'k:', ...
-    obj.trustRegionUpper(inVariableNumber)*[1,1], yl, 'k:', ...
-    'LineWidth',2)
+plot(obj.trustRegionLower(inVariableNumber)*[1,1], yl, 'k--', ...
+    obj.trustRegionUpper(inVariableNumber)*[1,1], yl, 'k--', ...
+    'LineWidth',1)
 
 xlim(varPlot([1,end]))
 ylim(yl)
