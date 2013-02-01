@@ -215,23 +215,26 @@ classdef LRLP < handle
                 lMaster, uMaster, ...
                 [], obj.optimizerOptions );
             
-            % The assertion below SHOULD test that the optimal solution
-            % found by linprog, obj.candidateSolution, is better than the
-            % previous solution, obj.bestSolution, which was shown to be
-            % feasible in the assertions above linprog.  However, Matlab
-            % sometimes DOES NOT FIND a better solution!  This is true even
-            % though Matlab reports optimality conditions are satisfied.
-            % So I am testing that the increase in cost is not too bad, and
-            % setting exitFlag = 0 if the costs increased.
-            assert( exitFlag ~= 1 || ...
-                cMaster * (obj.bestSolution - obj.candidateSolution) >= -1e-5, ...
-                ['Actual objective drop = ' ...
-                num2str( cMaster * (obj.bestSolution - obj.candidateSolution) )])
-            if cMaster * (obj.bestSolution - obj.candidateSolution) < 0
-                exitFlag = 0;
+            % If Matlab fails to find an optimal solution, whether it
+            % recongnizes it (bet setting exitFlag < 1) or  not (by not
+            % beating bestSolution), return immediately and let the program
+            % controlling LRLP handle it.
+            if exitFlag ~= 1 || ...
+                    cMaster*(obj.bestSolution - obj.candidateSolution) < 0
+                if exitFlag == 1
+                    exitFlag = 0;
+                end
+                return
             end
             
             assert( length(obj.candidateSolution) == length(obj.bestSolution) );
+            
+            % Any accepted solution should be better than the previous
+            % best.
+            assert( exitFlag ~= 1 || ...
+                cMaster * (obj.bestSolution - obj.candidateSolution) >= 0, ...
+                ['Actual objective drop = ' ...
+                num2str( cMaster * (obj.bestSolution - obj.candidateSolution) )])
             
             upperT = ((1+obj.trustRegionRatio)*obj.trustRegionUpper ...
                 + (1-obj.trustRegionRatio)*obj.trustRegionLower) ...
@@ -242,12 +245,12 @@ classdef LRLP < handle
             
             ind = 1:obj.THETA-1;
             
-            assert( ~any( upperT(ind) - lowerT(ind) ...
+            assert( all( upperT(ind) - lowerT(ind) ...
                 - obj.trustRegionRatio*( obj.trustRegionUpper(ind) - obj.trustRegionLower(ind) ) ...
-                > 1e-6 ) )
-            assert( ~any( (upperT(ind) + lowerT(ind))/2 ...
+                < 1e-6 ) )
+            assert( all( (upperT(ind) + lowerT(ind))/2 ...
                 - (obj.trustRegionUpper(ind) + obj.trustRegionLower(ind))/2 ...
-                > 1e-6 ) )
+                < 1e-6 ) )
             
             obj.trustRegionInterior = ~any( lowerT(ind) > obj.candidateSolution(ind) ...
                 | obj.candidateSolution(ind) > upperT(ind) );
@@ -429,11 +432,13 @@ classdef LRLP < handle
         function DoubleIterations( obj )
             switch obj.optimizer
                 case 'linprog'
+                    newIter = min( 1000, 2*optimget(obj.optimizerOptions,'MaxIter'));
                     obj.optimizerOptions = optimset( obj.optimizerOptions, ...
-                        'MaxIter', 2*optimget(obj.optimizerOptions,'MaxIter') );
+                        'MaxIter', newIter );
                 otherwise
                     error(['Unknown optimizer ' obj.optimizer])
             end
+            disp(['Max Iterations = ' num2str(newIter)])
         end
         
         % DeleteOldestCut deletes the oldest objective cut from the matrix
@@ -442,6 +447,12 @@ classdef LRLP < handle
             obj.objectiveCutsMatrix = obj.objectiveCutsMatrix(2:end,:);
             obj.objectiveCutsRHS = obj.objectiveCutsRHS(2:end);
             assert( ~isempty(obj.objectiveCutsRHS) )
+        end
+        
+        function DeleteOldestFeasibilityCut( obj )
+            obj.feasibilityCutsMatrix = obj.feasibilityCutsMatrix(2:end,:);
+            obj.feasibilityCutsRHS = obj.feasibilityCutsRHS(2:end);
+            assert( ~isempty(obj.feasibilityCutsRHS) )
         end
         
     end
