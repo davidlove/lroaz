@@ -4,11 +4,23 @@ if nargin < 1
     saveFileName = 'saved_variables.mat';
 end
 
-lpModel = InitializeSimpleTwoStageLP();
+% lpModel = InitializeSimpleTwoStageLP();
 
-obs = [1 1 1 1];
+waterFolders = { ...
+                 'all_scenarios/5/', ...
+                 'all_scenarios/6/', ...
+                 'all_scenarios/7/', ...
+                 'all_scenarios/8/', ...
+               };
+years = 41;
+timeLag = 1;
+firstStageYears = 5;
 
-dgp = 0.01;
+lpModel = LPModel( waterFolders, years, timeLag, firstStageYears );
+
+obs = 5*[1 1 1 1];
+
+dgp = 0.5;
 gp = dgp:dgp:1-dgp;
 
 iiSet = 1:length(gp);
