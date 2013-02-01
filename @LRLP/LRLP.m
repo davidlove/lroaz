@@ -61,6 +61,7 @@ classdef LRLP < handle
         currentObjectiveTolerance
         currentProbabilityTolerance
         pWorst
+        relativeLikelihood
     end
     
     %     Boolean parameters for the algorithm
@@ -115,7 +116,7 @@ classdef LRLP < handle
             obj.trustRegionRhoBound = 1/4;
             obj.trustRegionScaleDown = 1/4;
             obj.trustRegionScaleUp = 3;
-            obj.trustRegionEta = 1/5;
+            obj.trustRegionEta = 1/50;
             obj.trustRegionRatio = 0.99;
             
             assert( obj.trustRegionEta <= obj.trustRegionRhoBound )
@@ -615,12 +616,26 @@ classdef LRLP < handle
             obj.trustRegionRho = trueDrop / predictedDrop;
         end
         
+        % UpdateBestSolution updates the best known solution, using the
+        % true value of theta
+        function UpdateBestSolution( obj )
+            if obj.newSolutionAccepted
+                obj.secondBestSolution = obj.bestSolution;
+                obj.bestSolution = obj.candidateSolution;
+                obj.bestSolution(obj.THETA) = obj.thetaTrue;
+                obj.CalculateProbability();
+            end
+        end
+        
         % CalculateProbabilty calculates the worst case distribution for
         % the current best solution
         function CalculateProbability( obj )
             % obj.SolveSubProblems( obj.bestSolution );
             obj.pWorst = obj.Lambda*obj.numObsPerScen ...
                 ./(obj.Mu-obj.secondStageValues');
+            obj.relativeLikelihood ...
+                = exp(sum( obj.numObsPerScen.*( log(obj.pWorst) ...
+                -log(obj.numObsPerScen/obj.numObsTotal) ) ));
         end
         
         % ResetSecondStageSolutions clears the second stage solution values
@@ -680,17 +695,6 @@ classdef LRLP < handle
             obj.trustRegionUpper(obj.THETA) = Inf;
             
             uOut = min( uOut, obj.trustRegionUpper );
-        end
-        
-        % UpdateBestSolution updates the best known solution, using the
-        % true value of theta
-        function UpdateBestSolution( obj )
-            if obj.newSolutionAccepted
-                obj.secondBestSolution = obj.bestSolution;
-                obj.bestSolution = obj.candidateSolution;
-                obj.bestSolution(obj.THETA) = obj.thetaTrue;
-                obj.CalculateProbability();
-            end
         end
         
         % GetX gets the decisions x from the given solution
