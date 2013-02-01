@@ -53,6 +53,7 @@ classdef LRLP < handle
         trustRegionLower
         trustRegionUpper
         trustRegionRho
+        objectiveScale
         optimizerOptions
     end
     
@@ -172,6 +173,9 @@ classdef LRLP < handle
             if exitFlag ~= 1
                 error('Could not solve first stage LP')
             end
+            
+            obj.objectiveScale = obj.nBar ...
+                / median(obj.lpModel.c(obj.lpModel.c ~= 0));
             
             obj.trustRegionSize = 1*max(abs(x0));
             
@@ -467,7 +471,7 @@ classdef LRLP < handle
         % SubProblem solves an individual subproblem, updating the optimal
         % value and dual solution to the sub problem
         function SubProblem( obj, inScenNumber, inSolution )
-            q = obj.lpModel.Getq( inScenNumber );
+            q = obj.lpModel.Getq( inScenNumber ) * obj.objectiveScale;
             D = obj.lpModel.GetD( inScenNumber );
             d = obj.lpModel.Getd( inScenNumber );
             B = obj.lpModel.GetB( inScenNumber );
@@ -631,8 +635,8 @@ classdef LRLP < handle
         % the current best solution
         function CalculateProbability( obj )
             % obj.SolveSubProblems( obj.bestSolution );
-            obj.pWorst = obj.Lambda*obj.numObsPerScen ...
-                ./(obj.Mu-obj.secondStageValues');
+            obj.pWorst = obj.GetLambda(obj.bestSolution)*obj.numObsPerScen ...
+                ./(obj.GetMu(obj.bestSolution)-obj.secondStageValues');
             obj.relativeLikelihood ...
                 = exp(sum( obj.numObsPerScen.*( log(obj.pWorst) ...
                 -log(obj.numObsPerScen/obj.numObsTotal) ) ));
@@ -655,7 +659,7 @@ classdef LRLP < handle
         
         % GetMasterc gets the cost vector for the master problem
         function cOut = GetMasterc( obj )
-            cOut = [obj.lpModel.c, 0, 0, 0];
+            cOut = [obj.lpModel.c, 0, 0, 0] * obj.objectiveScale;
             cOut(obj.LAMBDA) = obj.nBar;
             cOut(obj.MU) = 1;
             cOut(obj.THETA) = 1;
@@ -723,12 +727,12 @@ classdef LRLP < handle
         
         % Lambda returns the best value of lambda
         function outLambda = Lambda( obj )
-            outLambda = obj.GetLambda( obj.bestSolution );
+            outLambda = obj.GetLambda( obj.bestSolution ) / obj.objectiveScale;
         end
         
         % Mu returns the best value of mu
         function outMu = Mu( obj )
-            outMu = obj.GetMu( obj.bestSolution );
+            outMu = obj.GetMu( obj.bestSolution ) / obj.objectiveScale;
         end
         
         % NumObjectiveCuts returns the number of objective cuts
