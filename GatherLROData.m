@@ -18,9 +18,9 @@ firstStageYears = 5;
 
 lpModel = LPModel( waterFolders, years, timeLag, firstStageYears );
 
-obs = 5*[1 1 1 1];
+obs = 1*[1 1 1 1];
 
-dgp = 0.5;
+dgp = 0.01;
 gp = dgp:dgp:1-dgp;
 
 iiSet = 1:length(gp);
