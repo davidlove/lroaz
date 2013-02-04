@@ -1,7 +1,11 @@
 function [lrlp, outTotalCuts, outTotalProbs] = ...
-    SolveLRLP( simpleLP, gp, obs )
+    SolveLRLP( simpleLP, gp, obs, isGraphical )
 
-lrlp = LRLP( simpleLP, gp, obs );
+if nargin < 4
+    isGraphical = false;
+end
+
+lrlp = LRLP( simpleLP, gp, obs, 'linprog' );
 
 totalProblemsSolved = 1;
 totalCutsMade = 1;
@@ -41,9 +45,11 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     
     % Note, putting plot after updating trust region or solution will
     % result in it plotting the wrong trust region
-    %     lrlp.Plot;
-    %     assert( isequal( cS, lrlp.candidateSolution ), ...
-    %         num2str([cS, lrlp.candidateSolution]) )
+    if isGraphical
+        lrlp.Plot;
+        assert( isequal( cS, lrlp.candidateSolution ), ...
+            num2str([cS, lrlp.candidateSolution]) )
+    end
     
     lrlp.UpdateTrustRegionSize;
     assert( isequal( cS, lrlp.candidateSolution ), ...
@@ -64,7 +70,9 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     disp(['Total cuts made: ' num2str(totalCutsMade)])
     disp(['Total problems solved: ' num2str(totalProblemsSolved)])
     
-    %     pause(.5)
+    if isGraphical
+        pause(.5)
+    end
 end
 
 outTotalCuts = totalCutsMade;
