@@ -5,7 +5,18 @@ if nargin < 4
     isGraphical = false;
 end
 
-lrlp = LRLP( simpleLP, gp, obs, 'linprog' );
+opt = 'cplexlp';
+if exist(opt,'file')
+    % Keep default optimizer
+else
+    disp(' ')
+    disp(['Optimizer ' opt ' not found.'])
+    opt = 'linprog';
+    disp(['Falling back to ' opt '.'])
+    disp(' ')
+end
+
+lrlp = LRLP( simpleLP, gp, obs, opt );
 
 totalProblemsSolved = 1;
 totalCutsMade = 1;
