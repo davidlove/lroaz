@@ -33,6 +33,9 @@ switch inVariableNumber
 end
 
 yPlot = zeros(size(varPlot));
+origCMIF = obj.candidateMuIsFeasible;
+% Set to feasible for plotting lambda and mu
+obj.candidateMuIsFeasible = true;
 for ii=1:length(varPlot)
     plotSolution(inVariableNumber) = varPlot(ii);
     
@@ -50,7 +53,9 @@ for ii=1:length(varPlot)
     
 %     yplot(ii) = get_obj(xplot(ii),lambda0,mu0,cMaster,numscen,N,Nbar);
 end
+% Return LRLP to original status before the plot step
 obj.SolveSubProblems();
+obj.candidateMuIsFeasible = origCMIF;
 obj.FindExpectedSecondStage();
 
 figure( inVariableNumber )

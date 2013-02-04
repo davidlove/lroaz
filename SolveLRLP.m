@@ -35,12 +35,14 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     lrlp.SolveSubProblems;
     assert( isequal( cS, lrlp.candidateSolution ), ...
         num2str([cS, lrlp.candidateSolution]) )
+    cMIF = lrlp.candidateMuIsFeasible;
     
     totalCutsMade = totalCutsMade + 1;
     lrlp.GenerateCuts;
     assert( ~lrlp.candidateMuIsFeasible ...
         || isequal( cS, lrlp.candidateSolution ), ...
         num2str([cS, lrlp.candidateSolution]) )
+    assert( cMIF == lrlp.candidateMuIsFeasible )
     cS = lrlp.candidateSolution;
     
     % Note, putting plot after updating trust region or solution will
@@ -49,23 +51,28 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
         lrlp.Plot;
         assert( isequal( cS, lrlp.candidateSolution ), ...
             num2str([cS, lrlp.candidateSolution]) )
+        assert( cMIF == lrlp.candidateMuIsFeasible )
     end
     
     lrlp.UpdateTrustRegionSize;
     assert( isequal( cS, lrlp.candidateSolution ), ...
         num2str([cS, lrlp.candidateSolution]) )
+    assert( cMIF == lrlp.candidateMuIsFeasible )
     
     lrlp.UpdateSolutions;
     assert( isequal( cS, lrlp.candidateSolution ), ...
         num2str([cS, lrlp.candidateSolution]) )
+    assert( cMIF == lrlp.candidateMuIsFeasible )
     
     lrlp.UpdateTolerances;
     assert( isequal( cS, lrlp.candidateSolution ), ...
         num2str([cS, lrlp.candidateSolution]) )
+    assert( cMIF == lrlp.candidateMuIsFeasible )
     
     lrlp.WriteProgress;
     assert( isequal( cS, lrlp.candidateSolution ), ...
         num2str([cS, lrlp.candidateSolution]) )
+    assert( cMIF == lrlp.candidateMuIsFeasible )
     
     disp(['Total cuts made: ' num2str(totalCutsMade)])
     disp(['Total problems solved: ' num2str(totalProblemsSolved)])
