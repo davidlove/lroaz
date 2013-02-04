@@ -202,13 +202,13 @@ classdef LRLP < handle
             obj.SolveSubProblems();
             obj.GenerateCuts();
             
-            solnCost = fval + obj.numObsPerScen/obj.numObsTotal*obj.secondStageValues;
-            obj.objectiveScale = 2*obj.nBar/solnCost;
-            obj.candidateSolution(obj.MU) = -Inf;
-            obj.SolveSubProblems();
-%             obj.secondStageValues = obj.objectiveScale*obj.secondStageValues;
-            obj.GenerateCuts();
-            obj.DeleteOldestCut();
+%             solnCost = fval + obj.numObsPerScen/obj.numObsTotal*obj.secondStageValues;
+%             obj.objectiveScale = 2*obj.nBar/solnCost;
+%             obj.candidateSolution(obj.MU) = -Inf;
+%             obj.SolveSubProblems();
+% %             obj.secondStageValues = obj.objectiveScale*obj.secondStageValues;
+%             obj.GenerateCuts();
+%             obj.DeleteOldestCut();
             
             obj.UpdateBestSolution();
             obj.UpdateTolerances();
@@ -270,7 +270,7 @@ classdef LRLP < handle
             if exitFlag ~= 1 || ...
                     cMaster*(obj.bestSolution - obj.candidateSolution) < 0
                 if exitFlag == 1
-                    exitFlag = 0;
+                    exitFlag = -50;
                 end
                 return
             end
@@ -607,7 +607,12 @@ classdef LRLP < handle
                     break
                 end
             end
-            obj.candidateSolution( obj.MU ) = max(mu, hMax+1);
+%             obj.candidateSolution( obj.MU ) = max(mu, hMax+1);
+            if mu > hMax
+                obj.candidateSolution( obj.MU ) = mu;
+            else
+                obj.candidateSolution( obj.Mu ) = hMax*1.001;
+            end
         end
         
         % FindExpectedSecondStage gets the expected value of the second
