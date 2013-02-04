@@ -204,7 +204,9 @@ classdef LRLP < handle
             
             solnCost = fval + obj.numObsPerScen/obj.numObsTotal*obj.secondStageValues;
             obj.objectiveScale = 2*obj.nBar/solnCost;
-            obj.secondStageValues = obj.objectiveScale*obj.secondStageValues;
+            obj.candidateSolution(obj.MU) = -Inf;
+            obj.SolveSubProblems();
+%             obj.secondStageValues = obj.objectiveScale*obj.secondStageValues;
             obj.GenerateCuts();
             obj.DeleteOldestCut();
             
