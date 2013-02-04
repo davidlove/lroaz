@@ -546,7 +546,7 @@ classdef LRLP < handle
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
             
-            obj.secondStageDuals{ inScenNumber, obj.SLOPE } = -pi.eqlin'*B;
+            obj.secondStageDuals{ inScenNumber, obj.SLOPE } = sparse(-pi.eqlin'*B);
             obj.secondStageDuals{ inScenNumber, obj.INTERCEPT } ...
                 = - pi.eqlin'*d ...
                 - pi.upper(u<Inf)'*u(u<Inf) ...
@@ -573,7 +573,7 @@ classdef LRLP < handle
             slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
             intercept = obj.thetaTrue - slope*[xLocal;lambdaLocal;muLocal];
             
-            obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; slope, -1];
+            obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; sparse([slope, -1])];
             obj.objectiveCutsRHS = [obj.objectiveCutsRHS; -intercept];
         end
         
@@ -585,7 +585,7 @@ classdef LRLP < handle
             feasSlope = [obj.secondStageDuals{hIndex,obj.SLOPE}, 0, -1, 0];
             feasInt = obj.secondStageDuals{hIndex,obj.INTERCEPT};
             
-            obj.feasibilityCutsMatrix = [obj.feasibilityCutsMatrix; feasSlope];
+            obj.feasibilityCutsMatrix = [obj.feasibilityCutsMatrix; sparse(feasSlope)];
             obj.feasibilityCutsRHS = [obj.feasibilityCutsRHS; -feasInt];
         end
         
