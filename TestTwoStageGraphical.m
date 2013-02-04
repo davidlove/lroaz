@@ -5,7 +5,8 @@ origLP = simpleLP;
 assert( isequal( simpleLP, origLP ) )
 
 % gp = 0.5;
-problemCases = [0.89,  7  20  47  46; ...
+problemCases = [0.81, 46   7  46  32; ...
+                0.89,  7  20  47  46; ...
                 0.63,  2  46  41  38; ...
                 0.50, 35  28  22  33];
 % obs = ceil(50*rand(1,4));
@@ -28,7 +29,7 @@ for ii = 1:numProblems
         obs = ceil(50*rand(1,4));
     end
     
-    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( simpleLP, gp, obs );
+    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( simpleLP, gp, obs, false );
     
     tols(ii) = solvedLRLP.currentObjectiveTolerance;
     ptols(ii) = solvedLRLP.currentProbabilityTolerance;

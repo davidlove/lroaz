@@ -11,14 +11,29 @@ totalProblemsSolved = 1;
 totalCutsMade = 1;
 while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     totalProblemsSolved = totalProblemsSolved + 1;
+    if totalProblemsSolved >= 80
+        1;
+    end
+    
     exitFlag = lrlp.SolveMasterProblem;
-    if exitFlag ~= 1
+    if exitFlag ~= 1 || (exist('cS','var') && isequal(cS,lrlp.candidateSolution))
+        if cS == lrlp.candidateSolution
+            exitFlag = -100;
+        end
         disp(['exitFlag = ' num2str(exitFlag)])
         switch exitFlag
             case 0
                 lrlp.DoubleIterations;
             case {-2,-3,-4,-5}
                 % Do nothing extra
+            case -50
+                % The optimizer failed to find a solution better than
+                % lrlp.bestSolution
+                % This has been observed with linprog and cplexlp
+            case -100
+                % The optimizer returned the same solution as it found the
+                % previous time around
+                % This has been observed with cplexlp
             otherwise
                 error( ['Unknown error code: ' num2str(exitFlag)] )
         end
