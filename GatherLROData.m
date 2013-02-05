@@ -26,7 +26,10 @@ gp = dgp:dgp:1-dgp;
 iiSet = 1:length(gp);
 
 for ii = iiSet
+    timeStart = tic;
     [solvedLRLP,c1,n1] = SolveLRLP( lpModel, gp(ii), obs );
+    timeIndiv = toc(timeStart);
+    
     p1 = solvedLRLP.pWorst;
     x1 = solvedLRLP.X;
     m1 = solvedLRLP.Mu;
@@ -45,7 +48,7 @@ for ii = iiSet
 %         exitFlags = zeros(1,length(gp));
         numProbs = zeros(1,length(gp));
         numCuts = zeros(1,length(gp));
-%         timeRuns = zeros(1,length(gp));
+        timeRuns = zeros(1,length(gp));
     end
     
     pWorst(:,ii) = p1';
@@ -58,13 +61,13 @@ for ii = iiSet
 %     exitFlags(ii) = eF;
     numProbs(ii) = n1;
     numCuts(ii) = c1;
-%     timeRuns(ii) = timeIndiv;
+    timeRuns(ii) = timeIndiv;
     
     save(saveFileName,'gp','pWorst','x','lambda','mu', ...
         'scenCosts',...%'zCost',
         'likelihood', ...
-        'numProbs','numCuts');
-%         'exitFlags','timeRuns')
+        'numProbs','numCuts','timeRuns');
+%         'exitFlags')
 
     clear solvedLRLP
 end
