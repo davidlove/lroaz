@@ -150,22 +150,20 @@ GHG = 0.000623854*Total_Energy;
 
 % Total IPR used for potable demand
 xa = find(strncmpi(Var_name,'IPR',3));
-if isempty(xa)
-    xa = find(strncmpi(Var_name,'RO',2));
-end
+xb = find(strncmpi(Var_name,'RO',2));
+xc = union(xa,xb);
 xb = strfind(Var_name,'DemP');
 xb = find(~cellfun(@isempty,xb));
-xa=intersect(xa,xb);
+xa=intersect(xc,xb);
 Total_IPR_P_Use = sum(sum(Flow(xa,:)));
 
 % Total IPR used for non-potable demand
 xa = find(strncmpi(Var_name,'IPR',3));
-if isempty(xa)
-    xa = find(strncmpi(Var_name,'RO',2));
-end
+xb = find(strncmpi(Var_name,'RO',2));
+xc = union(xa,xb);
 xb = strfind(Var_name,'DemNP');
 xb = find(~cellfun(@isempty,xb));
-xa=intersect(xa,xb);
+xa=intersect(xc,xb);
 Total_IPR_NP_Use = sum(sum(Flow(xa,:)));
 
 % Total Reclaimed Water used for non-potable demand (not including IPR)
