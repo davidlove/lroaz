@@ -4,11 +4,11 @@ function one_stage_az( inputLocation, numYears, Time_Lag )
 % solve the single-stage problem with time lag
 
 if nargin < 3
-    Time_Lag = 12;
+    Time_Lag = 1;
     if nargin < 2
         numYears = 41;
         if nargin < 1
-            inputLocation = 'hwee_scenario/';
+            inputLocation = 'SP C/5/';
         end
     end
 end
