@@ -20,7 +20,7 @@ tic;
 %         Connections.xlsx
 %         Inputs.xlsx
 %         sf.xlsx
-%        Here, I've used the folder hwee_scenario
+%        Here, I've used the folder 'SP C/5'
 %     2. The number of years in the model.  This is NOT the number of time
 %     periods.
 %     3. The time lag.  LPModel figures out timePeriods = numYears *
