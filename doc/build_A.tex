@@ -198,4 +198,8 @@ This will remove $\userN$ constraints and $\userN$ variables from each time peri
 The total system loss can be computed simply with $(1, 1, \dots, 1) (L'+L) (x^1_a, x^2_a, \dots, x^{41}_a) - L' x^{41}_a$.
 The final term is important for the boundary condition: there is no computed loss after the final time period.
 
+Making this change will remove the variables indexed by \texttt{-loss} and \texttt{-Loss} that \texttt{ReadResults} uses to compute the system losses.
+Doing so was not very important previously, when all losses are counted as the same.
+Now, I will have to maintain two loss matrices in order to track the losses in the same way.
+
 \end{document}
