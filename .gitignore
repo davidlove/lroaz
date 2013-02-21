@@ -1,0 +1,8 @@
+# MATLAB saved variables #
+##########################
+*.mat
+
+# Excel directories #
+#####################
+SP\ ?/
+all_scenarios*/
