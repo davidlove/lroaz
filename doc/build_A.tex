@@ -62,6 +62,7 @@
 \newcommand{\buildA}{\texttt{build\_A.m}}
 \newcommand{\A}{\texttt{A}}
 \newcommand{\Ast}{\texttt{A\_st}}
+\newcommand{\Alag}{\texttt{A\_lag}}
 \newcommand{\xr}{\texttt{xr}}
 \newcommand{\xb}{\texttt{xb}}
 \newcommand{\xe}{\texttt{xe}}
@@ -143,7 +144,25 @@ In the interest of making the linear program more computationally tractable, I p
 Making the LP smaller should make it easier to solve numerically in a stable way.
 As of this writing, this idea is purely hypothetical, but I will discuss it next.
 
-\pagebreak
+\section*{Constraint Matrices for other time lags}
+
+When time steps other than a year are used, the matrix \Ast is broken up into two pieces: \Ast\ and \Alag.
+Matrix \Ast\ still handles storage that is available in the next time period.
+Matrix \Alag\ handles storage that is not available until some number of periods in the future, specified by \texttt{timeLag}.
+As the code is currently written, the only options are \texttt{timeLag = 1} (for 1-year time steps) and \texttt{timeLag = 12} (for 1-month time steps).
+For illustration purposes, the constraint matrix is constructed as follows for \texttt{timeLag = 3}
+\[
+	\left(
+	\begin{array}{ccccc}
+		\A    &       &      &      &    \\
+		\Ast  & \A    &      &      &    \\
+		      & \Ast  & \A   &      &    \\
+		\Alag &       & \Ast & \A   &    \\
+		      & \Alag &      & \Ast & \A
+	\end{array}
+	\right).
+\]
+Note that for \texttt{timeLag = 1} the matrices \Ast\ and \Alag\ will overlap, and thus are added together.
 
 \section*{Proposed changes to constraint building code}
 
