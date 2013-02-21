@@ -184,16 +184,6 @@ Then expanding the constraints for a single intermediate time period will look l
 		L' x^{n-1}_a &                  & + L x^n_a   &           &             & + I x^n_I & = 0.
 	\end{array}
 \]
-\textbf{
-	WARNING: The variable names in the $x_I$ are appended with \texttt{-loss} in the code.
-	The code searches for \texttt{-loss} variables an sums them to determine the total loss for the system.
-	After writing out the above formulation, it looks to me that losses are being double counted in all time periods except the last one.
-	Double check this VERY carefully.
-}
-
-\textbf{
-	On second though, $L'$ and $L$ are different matrices, so both their components will be important to computing the total losses.
-}
 
 I propose to simply add together the first and last sets of constraints to arrive at an equivalent but smaller formulation.
 The variables $x_I$ are used only to connect the two sets of constraints, so removing them should be painless.
