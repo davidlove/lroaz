@@ -5,7 +5,7 @@
 % * Whether mu was initially feasible
 % * Whether the solution was in the trust region interior
 
-classdef Solution < handle
+classdef Solution < matlab.mixin.Copyable
     
     properties (GetAccess=private, SetAccess=private)
         solution
