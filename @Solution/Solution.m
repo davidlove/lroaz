@@ -77,24 +77,24 @@ classdef Solution < handle
             self.trustRegionInterior = [];
         end
         
-        function xOut = X( self )
-            xOut = self.solution;
+        function outX = X( self )
+            outX = self.solution;
         end
         
-        function lOut = Lambda( self )
-            lOut = self.lambda;
+        function outL = Lambda( self )
+            outL = self.lambda;
         end
         
-        function mOut = Mu( self )
-            mOut = self.mu;
+        function outM = Mu( self )
+            outM = self.mu;
         end
         
-        function tOut = ThetaMaster( self )
-            tOut = self.theta( :,self.MASTER );
+        function outT = ThetaMaster( self )
+            outT = self.theta( :,self.MASTER );
         end
         
-        function tOut = ThetaTrue( self )
-            tOut = self.theta( :,self.TRUE );
+        function outT = ThetaTrue( self )
+            outT = self.theta( :,self.TRUE );
         end
         
     end
