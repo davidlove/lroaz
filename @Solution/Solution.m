@@ -93,13 +93,13 @@ classdef Solution < handle
             self.mu = inMu(:);
         end
         
-        function SetTheta( self, inTheta, type )
+        function SetTheta( self, inTheta, inType )
             if numel(inTheta) ~= self.numScen
                 error( 'Solution:SetTheta:size', ...
                     ['Theta has size ' num2str(numel(inTheta)) ...
                     ', should be ' num2str(self.numScen)] )
             end
-            switch type
+            switch inType
                 case 'master'
                     typeN = self.MASTER;
                 case 'true'
