@@ -7,7 +7,7 @@
 
 classdef Solution < handle
     
-    properties (GetAccess=public, SetAccess=public)
+    properties (GetAccess=public, SetAccess=private)
         solution
         lambda
         mu
@@ -63,10 +63,57 @@ classdef Solution < handle
             obj.Reset();
         end
         
+        function SetX( self, inX )
+            if numel(inX) ~= self.numVariables
+                error('Solution:SetX:size', ...
+                    ['X has size ' num2str(numel(inX)) ...
+                    ', should be ' num2str(self.numVariables)])
+            end
+            self.solution = inX(:);
+        end
+        
+        function SetLambda( self, inLambda )
+            if numel(inLambda) ~= 1
+                error( 'Solution:SetLambda:size', ...
+                    ['Lambda has size ' num2str(numel(inLambda)) ...
+                    ', must have size 1'] )
+            elseif inLambda < 0
+                error( 'Solution:SetLambda:sign', ...
+                    'Lambda must be non-negative' )
+            end
+            self.lambda = inLambda(:);
+        end
+        
+        function SetMu( self, inMu )
+           if numel(inMu) ~= 1
+                error( 'Solution:SetMu:size', ...
+                    ['Mu has size ' num2str(numel(inMu)) ...
+                    ', must have size 1'] )
+           end
+            self.mu = inMu(:);
+        end
+        
+        function SetTheta( self, inTheta, type )
+            if numel(inTheta) ~= self.numScens
+                error( 'Solution:SetTheta:size', ...
+                    ['Theta has size ' num2str(numel(inTheta)) ...
+                    ', should be ' num2str(self.numScens)] )
+            end
+            switch type
+                case 'master'
+                    typeN = self.MASTER;
+                case 'true'
+                    typeN = self.TRUE;
+                otherwise
+                    error('type must be ''master'' or ''true''')
+            end
+            self.theta(:,typeN) = inTheta(:);
+        end
+        
         function Reset( self )
             self.solution = zeros( self.numVariables, 1 );
-            self.lambda = 0;
-            self.mu = 0;
+            self.lambda = [];
+            self.mu = [];
             
             self.theta = zeros( self.numTheta, 2 );
             
