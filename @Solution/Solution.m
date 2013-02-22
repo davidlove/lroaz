@@ -113,14 +113,54 @@ classdef Solution < handle
         
         function SetSecondStageValue( self, inScen, inValue )
             if inScen < 1 || inScen > self.numScen
-                error('Solution:SetSecondStageValue:badscen', ...
+                error( 'Solution:SetSecondStageValue:badscen', ...
                     ['Scenario number must be between 1 and ' ...
-                    num2str(self.numScen)])
+                    num2str(self.numScen)] )
             end
             self.secondStageValues(inScen) = inValue;
             if all(self.secondStageValues > -Inf)
                 self.muFeasible = all(self.mu > self.secondStageValues);
             end
+        end
+        
+        function SetSecondStageDual( self, inScen, inDual, inType )
+            if inScen < 1 || inScen > self.numScen
+                error( 'Solution:SetSecondStageDual:badscen', ...
+                    ['Scenario number must be between 1 and ' ...
+                    num2str(self.numScen)] )
+            end
+            switch inType
+                case 'slope'
+                    type = self.SLOPE;
+                    if numel(inDual) ~= self.numVariables
+                        error( 'Solution:SetSecondStageDual:size', ...
+                            ['Dual slope must have same number of ' ...
+                            'variables as solution.'] )
+                    end
+                case 'int'
+                    type = self.INTERCEPT;
+                    if numel(inDual) ~= 1
+                        error( 'Solution:SetSecondStageDual:size', ...
+                        'Dual intercept must be a single element' )
+                    end
+                otherwise
+                    error( 'Solution:SetSecondStageDual:type', ...
+                        'Types: ''slope'' and ''int''' );
+            end
+            
+            self.secondStageDuals{ inScen, type } = inDual(:).';
+        end
+            
+        function SetTrustRegionInterior( self, inTF )
+            if ~isa( inTF, 'logical' )
+                error( 'Solution:SetTrustRegionInterior:logical', ...
+                    'Must be a logical variable' )
+            end
+            if ~isempty( self.trustRegionInterior )
+                error( 'Solution:SetTrustRegionInterior:setagain', ...
+                    'Trust region status already set' )
+            end
+            self.trustRegionInterior = inTF;
         end
         
         function Reset( self )
@@ -161,8 +201,20 @@ classdef Solution < handle
             outValues = self.secondStageValues;
         end
         
+        function outSlope = SecondStageSlope( self, inScen )
+            outSlope = self.secondStageDuals{ inScen, self.SLOPE };
+        end
+        
+        function outInt = SecondStageIntercept( self, inScen )
+            outInt = self.secondStageIntercept{ inScen, self.INTERCEPT };
+        end
+        
         function outTF = MuFeasible( self )
             outTF = self.muFeasible;
+        end
+        
+        function outTF = TrustRegionInterior( self )
+            outTF = self.trustRegionInterior;
         end
         
     end

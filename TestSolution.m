@@ -19,27 +19,51 @@ assertExceptionThrown( @() s.SetTheta(rand(1,lp.numScenarios),'blah'), ...
     'Solution:SetTheta:type' )
 
 % Assign legitimate variables
-
 s.SetX(0.5);
 s.SetLambda(3);
 s.SetMu(2);
-s.SetTheta(zeros(1,lp.numScenarios),'master');
+s.SetTheta(ones(1,lp.numScenarios),'master');
+
+% Give trust region a non-logical
+assertExceptionThrown( @() s.SetTrustRegionInterior( 2 ), ...
+    'Solution:SetTrustRegionInterior:logical' )
+% Give trust region interior status and check
+s.SetTrustRegionInterior( true );
+assertTrue( s.TrustRegionInterior )
+% Try to assign trust region status again
+assertExceptionThrown( @() s.SetTrustRegionInterior( false ), ...
+    'Solution:SetTrustRegionInterior:setagain' )
 
 % Bad scenario number tests
 assertExceptionThrown( @() s.SetSecondStageValue( 0, 32 ), ...
     'Solution:SetSecondStageValue:badscen' )
 assertExceptionThrown( @() s.SetSecondStageValue( lp.numScenarios+3, 32 ), ...
     'Solution:SetSecondStageValue:badscen' )
+assertExceptionThrown( @() s.SetSecondStageDual( 0, 32, 'slope' ), ...
+    'Solution:SetSecondStageDual:badscen' )
+assertExceptionThrown( @() s.SetSecondStageDual( lp.numScenarios+2, 32, 'slope' ), ...
+    'Solution:SetSecondStageDual:badscen' )
+
+% Size error for duals
+assertExceptionThrown( @() s.SetSecondStageDual( 1, ones(1,size(lp.A,2)+1), 'slope' ), ...
+    'Solution:SetSecondStageDual:size' )
+assertExceptionThrown( @() s.SetSecondStageDual( 1, [2 3], 'int' ), ...
+    'Solution:SetSecondStageDual:size' )
 
 % Assign second stage costs and dual values
 for scen=1:lp.numScenarios
     s.SetSecondStageValue( scen, scen-1 );
+    s.SetSecondStageDual( scen, scen*2, 'slope' );
+    s.SetSecondStageDual( scen, scen/3, 'int' );
 end
+s.SetTheta(2*ones(1,lp.numScenarios),'true');
 
+% Determine whether mu should be feasible
 muShouldBeFeasible = s.Mu > max(s.SecondStageValues);
 
+% Assert whether mu should be feasible
 assertTrue( s.MuFeasible == muShouldBeFeasible )
 
+% Feasibility of Mu should not change when Mu is updated
 s.SetMu( max(s.SecondStageValues) + 1 );
-
 assertTrue( s.MuFeasible == muShouldBeFeasible )
