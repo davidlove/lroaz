@@ -7,7 +7,7 @@
 
 classdef Solution < handle
     
-    properties (GetAccess=public, SetAccess=private)
+    properties (GetAccess=private, SetAccess=private)
         solution
         lambda
         mu
@@ -111,6 +111,18 @@ classdef Solution < handle
             self.theta(:,typeN) = inTheta(:);
         end
         
+        function SetSecondStageValue( self, inScen, inValue )
+            if inScen < 1 || inScen > self.numScen
+                error('Solution:SetSecondStageValue:badscen', ...
+                    ['Scenario number must be between 1 and ' ...
+                    num2str(self.numScen)])
+            end
+            self.secondStageValues(inScen) = inValue;
+            if all(self.secondStageValues > -Inf)
+                self.muFeasible = all(self.mu > self.secondStageValues);
+            end
+        end
+        
         function Reset( self )
             self.solution = zeros( self.numVariables, 1 );
             self.lambda = [];
@@ -143,6 +155,14 @@ classdef Solution < handle
         
         function outT = ThetaTrue( self )
             outT = self.theta( :,self.TRUE );
+        end
+        
+        function outValues = SecondStageValues( self )
+            outValues = self.secondStageValues;
+        end
+        
+        function outTF = MuFeasible( self )
+            outTF = self.muFeasible;
         end
         
     end
