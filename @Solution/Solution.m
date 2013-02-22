@@ -94,10 +94,10 @@ classdef Solution < handle
         end
         
         function SetTheta( self, inTheta, type )
-            if numel(inTheta) ~= self.numScens
+            if numel(inTheta) ~= self.numScen
                 error( 'Solution:SetTheta:size', ...
                     ['Theta has size ' num2str(numel(inTheta)) ...
-                    ', should be ' num2str(self.numScens)] )
+                    ', should be ' num2str(self.numScen)] )
             end
             switch type
                 case 'master'
@@ -105,7 +105,8 @@ classdef Solution < handle
                 case 'true'
                     typeN = self.TRUE;
                 otherwise
-                    error('type must be ''master'' or ''true''')
+                    error('Solution:SetTheta:type', ...
+                        'type must be ''master'' or ''true''')
             end
             self.theta(:,typeN) = inTheta(:);
         end
