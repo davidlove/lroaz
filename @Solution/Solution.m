@@ -64,7 +64,9 @@ classdef Solution < matlab.mixin.Copyable
         end
         
         function SetX( self, inX )
-            if numel(inX) ~= self.numVariables
+            if ~isempty(self.solution)
+                error('Solution:SetX:setagain', 'X has already been set')
+            elseif numel(inX) ~= self.numVariables
                 error('Solution:SetX:size', ...
                     ['X has size ' num2str(numel(inX)) ...
                     ', should be ' num2str(self.numVariables)])
@@ -73,7 +75,9 @@ classdef Solution < matlab.mixin.Copyable
         end
         
         function SetLambda( self, inLambda )
-            if numel(inLambda) ~= 1
+            if ~isempty(self.lambda)
+                error('Solution:SetLambda:setagain', 'Lambda has already been set')
+            elseif numel(inLambda) ~= 1
                 error( 'Solution:SetLambda:size', ...
                     ['Lambda has size ' num2str(numel(inLambda)) ...
                     ', must have size 1'] )
@@ -164,7 +168,7 @@ classdef Solution < matlab.mixin.Copyable
         end
         
         function Reset( self )
-            self.solution = zeros( self.numVariables, 1 );
+            self.solution = [];
             self.lambda = [];
             self.mu = [];
             

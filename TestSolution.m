@@ -24,6 +24,10 @@ s.SetLambda(3);
 s.SetMu(2);
 s.SetTheta(ones(1,lp.numScenarios),'master');
 
+% Not allowed to set X or Lambda a second time
+assertExceptionThrown( @() s.SetX(1), 'Solution:SetX:setagain' )
+assertExceptionThrown( @() s.SetLambda(5), 'Solution:SetLambda:setagain' )
+
 % Give trust region a non-logical
 assertExceptionThrown( @() s.SetTrustRegionInterior( 2 ), ...
     'Solution:SetTrustRegionInterior:logical' )
