@@ -71,3 +71,21 @@ assertTrue( s.MuFeasible == muShouldBeFeasible )
 % Feasibility of Mu should not change when Mu is updated
 s.SetMu( max(s.SecondStageValues) + 1 );
 assertTrue( s.MuFeasible == muShouldBeFeasible )
+
+% Reset, then assign varaibles again
+s.Reset()
+s.SetX(-0.5)
+s.SetLambda(15)
+s.SetMu(-0.3)
+s.SetTheta(4*ones(1,lp.numScenarios),'master')
+s.SetTrustRegionInterior( false )
+
+% Assign second stage costs and duals, this time with Mu feasible
+for scen=1:lp.numScenarios
+    s.SetSecondStageValue( scen, s.Mu - scen );
+    s.SetSecondStageDual( scen, s.Mu - scen*2, 'slope' );
+    s.SetSecondStageDual( scen, s.Mu - scen/3, 'int' );
+end
+s.SetTheta(8*ones(1,lp.numScenarios),'true');
+
+assertTrue( s.MuFeasible )
