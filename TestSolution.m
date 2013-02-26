@@ -94,3 +94,14 @@ end
 s.SetTheta(8*ones(1,lp.numScenarios),'true');
 
 assertTrue( s.MuFeasible )
+
+% ------------------------------------------------------------------------
+
+% Test single cut version
+
+t = Solution( lp, 'single' );
+
+assertExceptionThrown( @() t.SetTheta(zeros(2,1),'master'), ...
+    'Solution:SetTheta:size' )
+
+t.SetTheta(1,'master')
