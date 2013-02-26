@@ -210,7 +210,7 @@ classdef Solution < matlab.mixin.Copyable
         end
         
         function outInt = SecondStageIntercept( self, inScen )
-            outInt = self.secondStageIntercept{ inScen, self.INTERCEPT };
+            outInt = self.secondStageDuals{ inScen, self.INTERCEPT };
         end
         
         function outTF = MuFeasible( self )
