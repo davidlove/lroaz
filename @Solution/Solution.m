@@ -98,7 +98,7 @@ classdef Solution < matlab.mixin.Copyable
         end
         
         function SetTheta( self, inTheta, inType )
-            if numel(inTheta) ~= self.numScen
+            if numel(inTheta) ~= size( self.theta, 1 );
                 error( 'Solution:SetTheta:size', ...
                     ['Theta has size ' num2str(numel(inTheta)) ...
                     ', should be ' num2str(self.numScen)] )
