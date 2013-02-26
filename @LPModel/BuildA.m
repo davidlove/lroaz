@@ -289,7 +289,7 @@ for xd = 1:sourceN % For each source term
         case NP
         case RTRN
         otherwise
-            error(['Unknown source type nubmer ' num2str(Con(1,i))]);
+            error(['Unknown source type nubmer ' num2str(source_type)]);
     end
     
     for xr = 1:userN % For each user
@@ -478,7 +478,7 @@ for xd = 1:sourceN % For each source term
                     A(index,xa) = -1; % source outflow
                     
                 otherwise
-                    error(['Unknown source type nubmer ' num2str(Con(1,i))]);
+                    error(['Unknown source type nubmer ' num2str(source_type)]);
             end
         end
     end
