@@ -40,15 +40,15 @@ classdef LRLP < handle
         candidateSolution
         bestSolution
         secondBestSolution
-        thetaTrue
+%         thetaTrue
         zLower
         zUpper
         objectiveCutsMatrix
         objectiveCutsRHS
         feasibilityCutsMatrix
         feasibilityCutsRHS
-        secondStageValues
-        secondStageDuals
+%         secondStageValues
+%         secondStageDuals
         trustRegionSize
         trustRegionLower
         trustRegionUpper
@@ -67,8 +67,8 @@ classdef LRLP < handle
     
     %     Boolean parameters for the algorithm
     properties %(Access=private)
-        candidateMuIsFeasible
-        trustRegionInterior
+%         candidateMuIsFeasible
+%         trustRegionInterior
         newSolutionAccepted
         zLowerUpdated
         trustRegionScaled
