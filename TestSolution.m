@@ -62,6 +62,11 @@ for scen=1:lp.numScenarios
 end
 s.SetTheta(2*ones(1,lp.numScenarios),'true');
 
+% Return second stage duals and values
+s.SecondStageValues;
+s.SecondStageSlope(1);
+s.SecondStageIntercept(1);
+
 % Determine whether mu should be feasible
 muShouldBeFeasible = s.Mu > max(s.SecondStageValues);
 
