@@ -133,6 +133,7 @@ classdef LRLP < handle
             obj.SCALE_UP = 1;
             obj.SCALE_DOWN = 2;
             
+            obj.candidateSolution = Solution( obj.lpModel, 'single' );
             obj.InitializeBenders();
             
             obj.trustRegionMinSize = obj.trustRegionSize / 10;
@@ -192,12 +193,15 @@ classdef LRLP < handle
             
             obj.trustRegionSize = 1*max(abs(x0));
             
-            obj.candidateSolution = [x0; 0; 0; 0];
-            obj.candidateSolution(obj.LAMBDA) = 1;
-            obj.candidateSolution(obj.MU) = -Inf;
-            obj.candidateSolution(obj.THETA) = -Inf;
+            obj.candidateSolution.SetX( x0 );
+            obj.candidateSolution.SetLambda( 1 );
+            obj.candidateSolution.SetMu( -Inf );
+            % obj.candidateSolution = [x0; 0; 0; 0];
+            % obj.candidateSolution(obj.LAMBDA) = 1;
+            % obj.candidateSolution(obj.MU) = -Inf;
+            % obj.candidateSolution(obj.THETA) = -Inf;
             
-            assert( length(obj.candidateSolution) == obj.THETA );
+            % assert( length(obj.candidateSolution) == obj.THETA );
             
             obj.SolveSubProblems();
             obj.GenerateCuts();
