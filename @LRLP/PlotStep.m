@@ -103,10 +103,11 @@ for cc=1:obj.NumFeasibilityCuts()
     obj.PlotFeasibilityCut( inVariableNumber, cc, yl );
 end
 
-% plot(x0,obj.zLower,'ko', 'MarkerSize',8)
-plot(x0,cMaster*obj.GetDecisions(obj.candidateSolution),'k*', 'MarkerSize',8)
+% If lower bound hasn't been updated yet
+lowerBound = cMaster*obj.GetDecisions(obj.candidateSolution,'master');
+plot(x0, lowerBound,'k*', 'MarkerSize',8)
 plot(varPlot([1,end]),[obj.zUpper obj.zUpper],'k', ...
-    [x0 x0],[obj.zLower obj.zUpper],'r', 'LineWidth',2)
+    [x0 x0],[lowerBound obj.zUpper],'r', 'LineWidth',2)
 
 % Plot trust region
 plot(obj.trustRegionLower(inVariableNumber)*[1,1], yl, 'k--', ...
