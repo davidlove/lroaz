@@ -781,6 +781,23 @@ classdef LRLP < handle
             uOut = min( uOut, obj.trustRegionUpper );
         end
         
+        function vOut = GetDecisions( obj, solution, inType )
+            if nargin < 3
+                inType = 'true';
+            end
+            vOut = [solution.X; 0; 0; 0];
+            vOut(obj.LAMBDA) = solution.Lambda;
+            vOut(obj.MU) = solution.Mu;
+            switch inType
+                case 'master'
+                    vOut(obj.THETA) = solution.ThetaMaster;
+                case 'true'
+                    vOut(obj.THETA) = solution.ThetaTrue;
+                otherwise
+                    error( 'Only accepts ''master and ''true''' )
+            end
+        end
+        
 %         % GetX gets the decisions x from the given solution
 %         function outX = GetX( obj, solution )
 %             outX = solution( 1:size(obj.lpModel.A,2) );
