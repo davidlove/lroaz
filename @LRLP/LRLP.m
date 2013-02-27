@@ -792,6 +792,8 @@ classdef LRLP < handle
             uOut = min( uOut, obj.trustRegionUpper );
         end
         
+        % GetDecisions takes the first stage data from a Solution object
+        % and formats it in a vector
         function vOut = GetDecisions( obj, solution, inType )
             if nargin < 3
                 inType = 'true';
