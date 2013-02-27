@@ -36,9 +36,8 @@ classdef LRLP < handle
     end
     
     %     Bender's Decomposition Parameters
-    properties %(Access=private)
+    properties (Access=private)
         candidateSolution
-        bestSolution
         secondBestSolution
 %         thetaTrue
         zLower
@@ -59,6 +58,7 @@ classdef LRLP < handle
     
     %     LRLP Solution Parameters
     properties (GetAccess=public, SetAccess=private)
+        bestSolution
         currentObjectiveTolerance
         currentProbabilityTolerance
         pWorst
@@ -834,6 +834,10 @@ classdef LRLP < handle
 
     %     Accessor methods
     methods (Access=public)
+        % CandidateVector returns the current candidate vector
+        function outCV = CandidateVector( obj )
+            outCV = obj.GetDecisions( obj.candidateSolution, 'master' );
+        end
 %         % X returns the best value of decisions x
 %         function outX = X( obj )
 %             outX = obj.GetX( obj.bestSolution );

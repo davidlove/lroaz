@@ -27,8 +27,8 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     end
     
     exitFlag = lrlp.SolveMasterProblem;
-    if exitFlag ~= 1 || (exist('cS','var') && isequal(cS,lrlp.candidateSolution))
-        if cS == lrlp.candidateSolution
+    if exitFlag ~= 1 || (exist('cS','var') && isequal(cS,lrlp.CandidateVector))
+        if cS == lrlp.CandidateVector
             exitFlag = -100;
         end
         disp(['exitFlag = ' num2str(exitFlag)])
@@ -56,7 +56,7 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
             num2str(lrlp.NumFeasibilityCuts) ' Feasibility Cuts Remaining.'])
         continue
     end
-    cS = lrlp.candidateSolution;
+    cS = lrlp.CandidateVector;
     
     lrlp.SolveSubProblems;
     assert( isequal( cS, lrlp.candidateSolution ), ...
