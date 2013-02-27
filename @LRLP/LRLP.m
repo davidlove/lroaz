@@ -231,33 +231,37 @@ classdef LRLP < handle
             lMaster = obj.GetMasterl();
             uMaster = obj.GetMasteru();
             
+            currentBest = obj.GetDecisions( obj.bestSolution );
+
             % Best solution should be feasible
-            feasTol = max(abs(obj.bestSolution)) * 1e-8;
-            assert( all( abs( AMaster*obj.bestSolution - bMaster ) ...
+            feasTol = max(abs(currentBest)) * 1e-8;
+            assert( all( abs( AMaster*currentBest - bMaster ) ...
                 < feasTol ), ...
                 ['bestSolution master infeasibility: ' ...
-                num2str(max(abs( AMaster*obj.bestSolution - bMaster )))])
-            assert( all( obj.objectiveCutsMatrix*obj.bestSolution ...
+                num2str(max(abs( AMaster*currentBest - bMaster )))])
+            assert( all( obj.objectiveCutsMatrix*currentBest ...
                 - obj.objectiveCutsRHS < feasTol ), ...
                 ['bestSolution objective infeasibility: ' ...
-                num2str( max(obj.objectiveCutsMatrix*obj.bestSolution ...
+                num2str( max(obj.objectiveCutsMatrix*currentBest ...
                 - obj.objectiveCutsRHS) )] )
-            assert( all( obj.feasibilityCutsMatrix*obj.bestSolution ...
+            assert( all( obj.feasibilityCutsMatrix*currentBest ...
                 - obj.feasibilityCutsRHS < feasTol ), ...
                 ['bestSolution feasibility infeasibility: ' ...
-                num2str( max(obj.feasibilityCutsMatrix*obj.bestSolution ...
+                num2str( max(obj.feasibilityCutsMatrix*currentBest ...
                 - obj.feasibilityCutsRHS) )] )
+
+            obj.candidateSolution.Reset;
             
             switch obj.optimizer
                 case 'linprog'
-                    [obj.candidateSolution,~,exitFlag] = linprog( cMaster, ...
+                    [currentCandidate,~,exitFlag] = linprog( cMaster, ...
                         [obj.objectiveCutsMatrix; obj.feasibilityCutsMatrix], ...
                         [obj.objectiveCutsRHS   ; obj.feasibilityCutsRHS   ], ...
                         AMaster, bMaster, ...
                         lMaster, uMaster, ...
                         [], obj.optimizerOptions );
                 case 'cplexlp'
-                    [obj.candidateSolution,~,exitFlag] = cplexlp( cMaster, ...
+                    [currentCandidate,~,exitFlag] = cplexlp( cMaster, ...
                         [obj.objectiveCutsMatrix; obj.feasibilityCutsMatrix], ...
                         [obj.objectiveCutsRHS   ; obj.feasibilityCutsRHS   ], ...
                         AMaster, bMaster, ...
@@ -266,29 +270,34 @@ classdef LRLP < handle
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
+
+            obj.candidateSolution.SetX( currentCandidate(1:end-3) )
+            obj.candidateSolution.SetLambda( currentCandidate(obj.LAMBDA) )
+            obj.candidateSolution.SetMu( currentCandidate(obj.MU) )
+            obj.candidateSolution.SetTheta( currentCandidate(obj.THETA), 'master' )
             
             % If Matlab fails to find an optimal solution, whether it
             % recongnizes it (bet setting exitFlag < 1) or  not (by not
             % beating bestSolution), return immediately and let the program
             % controlling LRLP handle it.
             if exitFlag ~= 1 || ...
-                    cMaster*(obj.bestSolution - obj.candidateSolution) < 0
+                    cMaster*(currentBest - currentCandidate) < 0
                 if exitFlag == 1
                     exitFlag = -50;
                 end
                 return
             end
             
-            assert( length(obj.candidateSolution) == length(obj.bestSolution) );
+%             assert( length(currentCandidate) == length(currentBest) );
             
-            assert( obj.candidateSolution(obj.LAMBDA) > 0 );
+%             assert( currentCandidate(obj.LAMBDA) > 0 );
             
             % Any accepted solution should be better than the previous
             % best.
             assert( exitFlag ~= 1 || ...
-                cMaster * (obj.bestSolution - obj.candidateSolution) >= 0, ...
+                cMaster * (currentBest - currentCandidate) >= 0, ...
                 ['Actual objective drop = ' ...
-                num2str( cMaster * (obj.bestSolution - obj.candidateSolution) )])
+                num2str( cMaster * (currentBest - currentCandidate) )])
             
             upperT = ((1+obj.trustRegionRatio)*obj.trustRegionUpper ...
                 + (1-obj.trustRegionRatio)*obj.trustRegionLower) ...
@@ -306,8 +315,8 @@ classdef LRLP < handle
                 - (obj.trustRegionUpper(ind) + obj.trustRegionLower(ind))/2 ...
                 < 1e-6 ) )
             
-            obj.trustRegionInterior = ~any( lowerT(ind) > obj.candidateSolution(ind) ...
-                | obj.candidateSolution(ind) > upperT(ind) );
+            obj.candidateSolution.SetTrustRegionInterior( ~any( lowerT(ind) > currentCandidate(ind) ...
+                | currentCandidate(ind) > upperT(ind) ) );
         end
         
         % SolveSubProblems solves all subproblems, generates second stage
@@ -758,11 +767,12 @@ classdef LRLP < handle
         % GetMasterl gets the lower bound for the master problem
         function lOut = GetMasterl( obj )
             lOut = [obj.lpModel.l; 0; 0; 0];
-            lOut(obj.LAMBDA) = obj.bestSolution(obj.LAMBDA) / 100;
+            lOut(obj.LAMBDA) = obj.bestSolution.Lambda / 100;
             lOut(obj.MU) = -Inf;
             lOut(obj.THETA) = -Inf;
             
-            obj.trustRegionLower = obj.bestSolution - obj.trustRegionSize;
+            obj.trustRegionLower = obj.GetDecisions(obj.bestSolution) ...
+                - obj.trustRegionSize;
             obj.trustRegionLower(obj.THETA) = -Inf;
             
             lOut = max( lOut, obj.trustRegionLower );
@@ -775,7 +785,8 @@ classdef LRLP < handle
             uOut(obj.MU) = Inf;
             uOut(obj.THETA) = Inf;
             
-            obj.trustRegionUpper = obj.bestSolution + obj.trustRegionSize;
+            obj.trustRegionUpper = obj.GetDecisions(obj.bestSolution) ...
+                + obj.trustRegionSize;
             obj.trustRegionUpper(obj.THETA) = Inf;
             
             uOut = min( uOut, obj.trustRegionUpper );
@@ -812,9 +823,8 @@ classdef LRLP < handle
 %         function outMu = GetMu( obj, solution )
 %             outMu = solution( obj.MU );
 %         end
-        
     end
-    
+
     %     Accessor methods
     methods (Access=public)
 %         % X returns the best value of decisions x
