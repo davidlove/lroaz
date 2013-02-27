@@ -665,24 +665,24 @@ classdef LRLP < handle
         function CalculateTrustRegionDecisions( obj )
             cMaster = obj.GetMasterc();
             
-            initialSolution = obj.bestSolution;
-            candidate = obj.candidateSolution;
-            truth = candidate;
-            if ~isempty(obj.thetaTrue)
-                truth(obj.THETA) = obj.thetaTrue;
-            else
-                error('True theta not yet calculated')
-            end
+            initialSolution = obj.GetDecisions( obj.bestSolution, 'true' );
+            candidate = obj.GetDecisions( obj.candidateSolution, 'master' );
+            truth = obj.GetDecisions( obj.candidateSolution, 'true' );
+%             if ~isempty(obj.thetaTrue)
+%                 truth(obj.THETA) = obj.thetaTrue;
+%             else
+%                 error('True theta not yet calculated')
+%             end
             
             trueDrop = cMaster*(initialSolution - truth);
             predictedDrop = cMaster*(initialSolution - candidate);
             
             % Infeasible candidate solutions might not produce a predicted
             % drop after they are made feasible
-            assert( ~obj.candidateMuIsFeasible || predictedDrop >= 0 )
+            assert( ~obj.candidateSolution.MuFeasible || predictedDrop >= 0 )
             
-            if obj.candidateMuIsFeasible
-                if isempty( obj.trustRegionInterior )
+            if obj.candidateSolution.MuFeasible
+                if isempty( obj.candidateSolution.TrustRegionInterior )
                     error( ['Undetermined whether solution exists in trust ' ...
                         'region interior'])
                 end
