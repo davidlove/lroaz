@@ -602,26 +602,27 @@ classdef LRLP < handle
         % FindFeasibleMu uses Newton's Method to find a feasible value of
         % mu
         function FindFeasibleMu( obj )
-            lambdaLocal = obj.GetLambda( obj.candidateSolution );
+            lambdaLocal = obj.candidateSolution.Lambda;
             
-            [hMax hIndex] = max( obj.secondStageValues );
+            localValues = obj.candidateSolution.SecondStageValues;
+            [hMax hIndex] = max( localValues );
             mu = obj.lpModel.numScenarios/2 ...
                 * obj.numObsPerScen(hIndex)*lambdaLocal() ...
                 + hMax;
             
             for ii=1:200
                 muOld = mu;
-                mu = mu + (sum(lambdaLocal() * obj.numObsPerScen'./(mu - obj.secondStageValues))-1) / ...
-                    sum(lambdaLocal() * obj.numObsPerScen'./((mu - obj.secondStageValues).^2));
+                mu = mu + (sum(lambdaLocal() * obj.numObsPerScen'./(mu - localValues))-1) / ...
+                    sum(lambdaLocal() * obj.numObsPerScen'./((mu - localValues).^2));
                 if abs(mu - muOld) < min(mu,muOld)*0.01
                     break
                 end
             end
 %             obj.candidateSolution( obj.MU ) = max(mu, hMax+1);
             if mu > hMax
-                obj.candidateSolution( obj.MU ) = mu;
+                obj.candidateSolution.SetMu( mu );
             else
-                obj.candidateSolution( obj.Mu ) = hMax*1.001;
+                obj.candidateSolution.SetMu( hMax*1.001 );
             end
         end
         
@@ -632,17 +633,18 @@ classdef LRLP < handle
                 inSolution = obj.candidateSolution;
             end
             
-            if isempty( obj.candidateMuIsFeasible )
+            if isempty( inSolution.MuFeasible )
                 error(['Must determine whether candidate mu is feasible ' ...
                     'before finding expected second stage value'])
             end
             
-            lambdaLocal = obj.GetLambda( inSolution );
-            muLocal = obj.GetMu( inSolution );
+            lambdaLocal = inSolution.Lambda;
+            muLocal = inSolution.Mu;
             
-            obj.thetaTrue = obj.numObsPerScen/obj.numObsTotal ...
+            inSolution.SetTheta( obj.numObsPerScen/obj.numObsTotal ...
                 * ( obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
-                - obj.numObsTotal*lambdaLocal*log(muLocal-obj.secondStageValues) );
+                - obj.numObsTotal*lambdaLocal*log(muLocal-inSolution.SecondStageValues) ), ...
+                'true' );
         end
         
         % CalculateRho calculates the value of trustRegionRho
