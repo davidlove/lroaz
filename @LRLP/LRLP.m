@@ -718,13 +718,12 @@ classdef LRLP < handle
         % ResetSecondStageSolutions clears the second stage solution values
         % and dual solution information
         function ResetSecondStageSolutions( obj )
-            obj.candidateSolution = [];
-            obj.secondStageValues = -Inf(obj.lpModel.numScenarios,1);
-            obj.secondStageDuals = cell(obj.lpModel.numScenarios,2);
-            obj.candidateSolution = [];
-            obj.thetaTrue = [];
-            obj.candidateMuIsFeasible = [];
-            obj.trustRegionInterior = [];
+            obj.candidateSolution.Reset();
+%             obj.secondStageValues = -Inf(obj.lpModel.numScenarios,1);
+%             obj.secondStageDuals = cell(obj.lpModel.numScenarios,2);
+%             obj.thetaTrue = [];
+%             obj.candidateMuIsFeasible = [];
+%             obj.trustRegionInterior = [];
             obj.newSolutionAccepted = [];
             obj.zLowerUpdated = [];
             obj.trustRegionScaled = [];
