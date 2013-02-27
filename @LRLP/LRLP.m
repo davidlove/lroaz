@@ -414,13 +414,13 @@ classdef LRLP < handle
             disp([num2str(obj.NumObjectiveCuts) ' objective cuts, '...
                 num2str(obj.NumFeasibilityCuts) ' feasibility cuts.'])
             
-            if obj.candidateMuIsFeasible
+            if obj.candidateSolution.MuFeasible
                 disp('No feasibility cut generated')
             else
                 disp('Feasibility cut generated')
             end
             
-            if obj.trustRegionInterior
+            if obj.candidateSolution.TrustRegionInterior
                 disp(['Candidate solution in trust region interior, '...
                     'rho = ' num2str(obj.trustRegionRho)])
             else
