@@ -331,7 +331,7 @@ classdef LRLP < handle
         % GenerateCuts generates objective cut, and if necessary, generates
         % a feasibility cut and finds a good feasible value of mu
         function GenerateCuts( obj )
-            if ~obj.candidateMuIsFeasible
+            if ~obj.candidateSolution.MuFeasible
                 obj.GenerateFeasibilityCut();
                 obj.FindFeasibleMu();
             end
@@ -567,21 +567,23 @@ classdef LRLP < handle
         % GenerateObjectiveCut generates an objective cut and adds it to
         % the matrix
         function GenerateObjectiveCut( obj )
-            xLocal = obj.GetX( obj.candidateSolution );
-            lambdaLocal = obj.GetLambda( obj.candidateSolution );
-            muLocal = obj.GetMu( obj.candidateSolution );
+            xLocal = obj.candidateSolution.X;
+            lambdaLocal = obj.candidateSolution.Lambda;
+            muLocal = obj.candidateSolution.Mu;
+
+            localValues = obj.candidateSolution.SecondStageValues;
             
             intermediateSlope = zeros(obj.lpModel.numScenarios, size(obj.lpModel.A,2)+2);
             
             for ii=1:obj.lpModel.numScenarios
                 intermediateSlope(ii,:) ...
-                    = [ obj.numObsTotal*lambdaLocal*(obj.secondStageDuals{ii,obj.SLOPE}./(muLocal - obj.secondStageValues(ii))), ...
-                    obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - obj.secondStageValues(ii)), ...
-                    -obj.numObsTotal*lambdaLocal/(muLocal-obj.secondStageValues(ii))];
+                    = [ obj.numObsTotal*lambdaLocal*(obj.candidateSolution.SecondStageSlope(ii)./(muLocal - localValues(ii))), ...
+                    obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - localValues(ii)), ...
+                    -obj.numObsTotal*lambdaLocal/(muLocal-localValues(ii))];
             end
             
             slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
-            intercept = obj.thetaTrue - slope*[xLocal;lambdaLocal;muLocal];
+            intercept = obj.candidateSolution.ThetaTrue - slope*[xLocal;lambdaLocal;muLocal];
             
             obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; sparse([slope, -1])];
             obj.objectiveCutsRHS = [obj.objectiveCutsRHS; -intercept];
@@ -590,10 +592,10 @@ classdef LRLP < handle
         % GenerateFeasibilityCut generates a feasibility cut and adds it to
         % the matrix
         function GenerateFeasibilityCut( obj )
-            [~,hIndex] = max( obj.secondStageValues );
+            [~,hIndex] = max( obj.candidateSolution.SecondStageValues );
             
-            feasSlope = [obj.secondStageDuals{hIndex,obj.SLOPE}, 0, -1, 0];
-            feasInt = obj.secondStageDuals{hIndex,obj.INTERCEPT};
+            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), 0, -1, 0];
+            feasInt = obj.candidateSolution.SecondStageIntercept(hIndex);
             
             obj.feasibilityCutsMatrix = [obj.feasibilityCutsMatrix; sparse(feasSlope)];
             obj.feasibilityCutsRHS = [obj.feasibilityCutsRHS; -feasInt];
