@@ -701,9 +701,13 @@ classdef LRLP < handle
         % true value of theta
         function UpdateBestSolution( obj )
             if obj.newSolutionAccepted
-                obj.secondBestSolution = obj.bestSolution;
-                obj.bestSolution = obj.candidateSolution;
-                obj.bestSolution(obj.THETA) = obj.thetaTrue;
+                if ~isempty( obj.bestSolution )
+                    obj.secondBestSolution = obj.bestSolution.copy;
+                end
+                obj.bestSolution = obj.candidateSolution.copy;
+%                 obj.secondBestSolution = obj.bestSolution;
+%                 obj.bestSolution = obj.candidateSolution;
+%                 obj.bestSolution(obj.THETA) = obj.thetaTrue;
                 obj.CalculateProbability();
             end
         end
@@ -712,8 +716,8 @@ classdef LRLP < handle
         % the current best solution
         function CalculateProbability( obj )
             % obj.SolveSubProblems( obj.bestSolution );
-            obj.pWorst = obj.GetLambda(obj.bestSolution)*obj.numObsPerScen ...
-                ./(obj.GetMu(obj.bestSolution)-obj.secondStageValues');
+            obj.pWorst = obj.bestSolution.Lambda*obj.numObsPerScen ...
+                ./(obj.bestSolution.Mu-obj.bestSolution.SecondStageValues');
             obj.relativeLikelihood ...
                 = exp(sum( obj.numObsPerScen.*( log(obj.pWorst) ...
                 -log(obj.numObsPerScen/obj.numObsTotal) ) ));
