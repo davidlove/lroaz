@@ -3,7 +3,7 @@ function PlotObjectiveCut( obj, inVariableNumber, inCutNumber, inBounds )
 
 A = obj.objectiveCutsMatrix;
 b = obj.objectiveCutsRHS;
-soln = obj.candidateSolution;
+soln = obj.GetDecisions( obj.candidateSolution );
 soln(obj.THETA) = 0;
 cMaster = obj.GetMasterc();
 

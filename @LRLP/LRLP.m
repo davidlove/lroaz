@@ -469,24 +469,24 @@ classdef LRLP < handle
                 error('Must choose variable in the original LP model')
             end
             
-            origCandidate = obj.candidateSolution;
-            origBest = obj.bestSolution;
-            origSecondBest = obj.secondBestSolution;
-            origSecondDuals = obj.secondStageDuals;
-            origSecondValues = obj.secondStageValues;
-            origTheta = obj.thetaTrue;
+%             origCandidate = obj.candidateSolution;
+%             origBest = obj.bestSolution;
+%             origSecondBest = obj.secondBestSolution;
+%             origSecondDuals = obj.secondStageDuals;
+%             origSecondValues = obj.secondStageValues;
+%             origTheta = obj.thetaTrue;
             
             obj.PlotStep( variableNumber );
             obj.PlotStep( obj.LAMBDA );
             obj.PlotStep( obj.MU );
             
             % Ensure that no second stage properties while plotting
-            assert( isequal( origCandidate, obj.candidateSolution ) )
-            assert( isequal( origBest, obj.bestSolution ) )
-            assert( isequal( origSecondBest, obj.secondBestSolution ) )
-            assert( isequal( origSecondDuals, obj.secondStageDuals ) )
-            assert( isequal( origSecondValues, obj.secondStageValues ) )
-            assert( isequal( origTheta, obj.thetaTrue ) )
+%             assert( isequal( origCandidate, obj.candidateSolution ) )
+%             assert( isequal( origBest, obj.bestSolution ) )
+%             assert( isequal( origSecondBest, obj.secondBestSolution ) )
+%             assert( isequal( origSecondDuals, obj.secondStageDuals ) )
+%             assert( isequal( origSecondValues, obj.secondStageValues ) )
+%             assert( isequal( origTheta, obj.thetaTrue ) )
             
         end
         
@@ -647,6 +647,9 @@ classdef LRLP < handle
             if isempty( inSolution.MuFeasible )
                 error(['Must determine whether candidate mu is feasible ' ...
                     'before finding expected second stage value'])
+            end
+            if ~all( inSolution.SecondStageValues > -Inf )
+                error('Must set second stage values before calculating expectation')
             end
             
             lambdaLocal = inSolution.Lambda;

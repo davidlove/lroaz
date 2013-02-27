@@ -1,9 +1,9 @@
 %     Plot, to see the algorithm working
 function PlotStep( obj, inVariableNumber )
-plotSolution = obj.candidateSolution;
-x0 = plotSolution( inVariableNumber );
-lambda0 = plotSolution( obj.LAMBDA );
-mu0 = plotSolution( obj.MU );
+x0 = obj.GetDecisions( obj.candidateSolution );
+x0 = x0( inVariableNumber );
+lambda0 = obj.candidateSolution.Lambda;
+mu0 = obj.candidateSolution.Mu;
 
 cMaster = obj.GetMasterc();
 lMaster = obj.GetMasterl();
@@ -33,20 +33,39 @@ switch inVariableNumber
 end
 
 yPlot = zeros(size(varPlot));
-origCMIF = obj.candidateMuIsFeasible;
+% origCMIF = obj.candidateMuIsFeasible;
+
+plotSolution = obj.candidateSolution.copy;
+solnVector = obj.GetDecisions(plotSolution);
+origSecondStageValues = obj.candidateSolution.SecondStageValues;
+
 % Set to feasible for plotting lambda and mu
-obj.candidateMuIsFeasible = true;
+% obj.candidateMuIsFeasible = true;
 for ii=1:length(varPlot)
-    plotSolution(inVariableNumber) = varPlot(ii);
+    solnVector(inVariableNumber) = varPlot(ii);
+    plotSolution.Reset;
+    plotSolution.SetX( solnVector( 1:end-3 ) );
+    plotSolution.SetLambda( solnVector( obj.LAMBDA ) );
+    plotSolution.SetMu( solnVector( obj.MU ) );
+    plotSolution.SetTheta( solnVector( obj.THETA ), 'master' );
     
     if inVariableNumber ~= obj.LAMBDA && inVariableNumber ~= obj.MU
         obj.SolveSubProblems( plotSolution );
+    else
+        % Second stage values don't change, can save on recomputing
+        for ss=1:obj.lpModel.numScenarios
+            plotSolution.SetSecondStageValue( ss, origSecondStageValues(ss) );
+        end
     end
     
-    if obj.candidateMuIsFeasible
+    if isempty( plotSolution.MuFeasible )
+        error('Must first determine feasibility of mu')
+    end
+    
+    if plotSolution.MuFeasible
         obj.FindExpectedSecondStage( plotSolution );
-        plotSolution(obj.THETA) = obj.thetaTrue;
-        yPlot(ii) = cMaster * plotSolution;
+%         plotSolution(obj.THETA) = obj.thetaTrue;
+        yPlot(ii) = cMaster * obj.GetDecisions( plotSolution, 'true' );
     else
         yPlot(ii) = 0+1i;
     end
@@ -54,9 +73,9 @@ for ii=1:length(varPlot)
 %     yplot(ii) = get_obj(xplot(ii),lambda0,mu0,cMaster,numscen,N,Nbar);
 end
 % Return LRLP to original status before the plot step
-obj.SolveSubProblems();
-obj.candidateMuIsFeasible = origCMIF;
-obj.FindExpectedSecondStage();
+% obj.SolveSubProblems();
+% obj.candidateMuIsFeasible = origCMIF;
+% obj.FindExpectedSecondStage();
 
 figure( inVariableNumber )
 plot(varPlot(imag(yPlot)==0),yPlot(imag(yPlot)==0), ...
@@ -65,7 +84,7 @@ plot(varPlot(imag(yPlot)==0),yPlot(imag(yPlot)==0), ...
 yl = ylim;
 % if obj.zLower > -Inf
 %     yl(1) = (obj.zLower-0.1*yl(2))/(1-0.1);
-    yl(1) = (cMaster*obj.candidateSolution-0.1*yl(2))/(1-0.1);
+    yl(1) = (cMaster*obj.GetDecisions(obj.candidateSolution)-0.1*yl(2))/(1-0.1);
 % end
 % if zupper < Inf && zlower > -Inf
 %     a = 0.85;
@@ -85,7 +104,7 @@ for cc=1:obj.NumFeasibilityCuts()
 end
 
 % plot(x0,obj.zLower,'ko', 'MarkerSize',8)
-plot(x0,cMaster*obj.candidateSolution,'k*', 'MarkerSize',8)
+plot(x0,cMaster*obj.GetDecisions(obj.candidateSolution),'k*', 'MarkerSize',8)
 plot(varPlot([1,end]),[obj.zUpper obj.zUpper],'k', ...
     [x0 x0],[obj.zLower obj.zUpper],'r', 'LineWidth',2)
 
