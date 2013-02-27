@@ -777,39 +777,39 @@ classdef LRLP < handle
             uOut = min( uOut, obj.trustRegionUpper );
         end
         
-        % GetX gets the decisions x from the given solution
-        function outX = GetX( obj, solution )
-            outX = solution( 1:size(obj.lpModel.A,2) );
-        end
-        
-        % GetLambda gets lambda from the given solution
-        function outLambda = GetLambda( obj, solution )
-            outLambda = solution( obj.LAMBDA );
-        end
-        
-        % GetMU gets mu from the given solution
-        function outMu = GetMu( obj, solution )
-            outMu = solution( obj.MU );
-        end
+%         % GetX gets the decisions x from the given solution
+%         function outX = GetX( obj, solution )
+%             outX = solution( 1:size(obj.lpModel.A,2) );
+%         end
+%         
+%         % GetLambda gets lambda from the given solution
+%         function outLambda = GetLambda( obj, solution )
+%             outLambda = solution( obj.LAMBDA );
+%         end
+%         
+%         % GetMU gets mu from the given solution
+%         function outMu = GetMu( obj, solution )
+%             outMu = solution( obj.MU );
+%         end
         
     end
     
     %     Accessor methods
     methods (Access=public)
-        % X returns the best value of decisions x
-        function outX = X( obj )
-            outX = obj.GetX( obj.bestSolution );
-        end
-        
-        % Lambda returns the best value of lambda
-        function outLambda = Lambda( obj )
-            outLambda = obj.GetLambda( obj.bestSolution ) / obj.objectiveScale;
-        end
-        
-        % Mu returns the best value of mu
-        function outMu = Mu( obj )
-            outMu = obj.GetMu( obj.bestSolution ) / obj.objectiveScale;
-        end
+%         % X returns the best value of decisions x
+%         function outX = X( obj )
+%             outX = obj.GetX( obj.bestSolution );
+%         end
+%         
+%         % Lambda returns the best value of lambda
+%         function outLambda = Lambda( obj )
+%             outLambda = obj.GetLambda( obj.bestSolution ) / obj.objectiveScale;
+%         end
+%         
+%         % Mu returns the best value of mu
+%         function outMu = Mu( obj )
+%             outMu = obj.GetMu( obj.bestSolution ) / obj.objectiveScale;
+%         end
         
         % NumObjectiveCuts returns the number of objective cuts
         function outNum = NumObjectiveCuts( obj )
