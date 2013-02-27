@@ -172,7 +172,7 @@ classdef Solution < matlab.mixin.Copyable
             self.lambda = [];
             self.mu = [];
             
-            self.theta = zeros( self.numTheta, 2 );
+            self.theta = -Inf( self.numTheta, 2 );
             
             self.secondStageValues = -Inf( self.numScen, 1 );
             self.secondStageDuals = cell( self.numScen, 2 );
