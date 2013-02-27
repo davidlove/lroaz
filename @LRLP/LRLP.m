@@ -377,17 +377,19 @@ classdef LRLP < handle
             cMaster = obj.GetMasterc();
             if obj.newSolutionAccepted
                 obj.UpdateBestSolution();
-                assert( cMaster*obj.bestSolution <= obj.zUpper, ...
+                bestDecisions = obj.GetDecisions( obj.bestSolution, 'true' );
+                assert( cMaster*bestDecisions <= obj.zUpper, ...
                     ['rho = ' num2str(obj.trustRegionRho)])
-                obj.zUpper = cMaster*obj.bestSolution;
+                obj.zUpper = cMaster*bestDecisions;
             end
             
             if obj.newSolutionAccepted ...
-                    && obj.candidateMuIsFeasible ...
-                    && obj.trustRegionInterior
-                assert( cMaster*obj.candidateSolution >= obj.zLower )
+                    && obj.candidateSolution.MuFeasible ...
+                    && obj.candidateSolution.TrustRegionInterior
+                candidateDecisions = obj.GetDecisions( obj.candidateSolution, 'master' );
+                assert( cMaster*candidateDecisions >= obj.zLower )
                 obj.zLowerUpdated = true;
-                obj.zLower = cMaster*obj.candidateSolution;
+                obj.zLower = cMaster*candidateDecisions;
             else
                 obj.zLowerUpdated = false;
             end
@@ -690,7 +692,7 @@ classdef LRLP < handle
                 if trueDrop < obj.trustRegionRhoBound * predictedDrop
                     obj.trustRegionScaled = obj.SCALE_DOWN;
                 elseif trueDrop > (1-obj.trustRegionRhoBound) * predictedDrop ...
-                        && ~obj.trustRegionInterior
+                        && ~obj.candidateSolution.TrustRegionInterior
                     obj.trustRegionScaled = obj.SCALE_UP;
                 else
                     obj.trustRegionScaled = obj.NO_SCALE;
