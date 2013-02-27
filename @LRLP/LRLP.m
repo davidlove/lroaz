@@ -321,11 +321,11 @@ classdef LRLP < handle
                 obj.SubProblem( scenarioNum, solution );
             end
             
-            if obj.GetMu( solution ) > max( obj.secondStageValues )
-                obj.candidateMuIsFeasible = true;
-            else
-                obj.candidateMuIsFeasible = false;
-            end
+%             if obj.GetMu( solution ) > max( obj.secondStageValues )
+%                 obj.candidateMuIsFeasible = true;
+%             else
+%                 obj.candidateMuIsFeasible = false;
+%             end
         end
         
         % GenerateCuts generates objective cut, and if necessary, generates
@@ -529,7 +529,7 @@ classdef LRLP < handle
             l = obj.lpModel.Getl2( inScenNumber );
             u = obj.lpModel.Getu2( inScenNumber );
             
-            xLocal = obj.GetX( inSolution );
+            xLocal = inSolution.X;
             
             options = optimset('Display','off');
             
@@ -549,13 +549,19 @@ classdef LRLP < handle
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
-            
-            obj.secondStageDuals{ inScenNumber, obj.SLOPE } = sparse(-pi.eqlin'*B);
-            obj.secondStageDuals{ inScenNumber, obj.INTERCEPT } ...
-                = - pi.eqlin'*d ...
+
+            inSolution.SetSecondStageDual( inScenNumber, sparse(-pi.eqlin'*B), 'slope' )
+            inSolution.SetSecondStageDual( inScenNumber, - pi.eqlin'*d ...
                 - pi.upper(u<Inf)'*u(u<Inf) ...
-                - pi.lower(l~=0)'*l(l~=0);
-            obj.secondStageValues( inScenNumber ) = fval;
+                - pi.lower(l~=0)'*l(l~=0), 'int' )
+            inSolution.SetSecondStageValue( inScenNumber, fval )
+            
+%             obj.secondStageDuals{ inScenNumber, obj.SLOPE } = sparse(-pi.eqlin'*B);
+%             obj.secondStageDuals{ inScenNumber, obj.INTERCEPT } ...
+%                 = - pi.eqlin'*d ...
+%                 - pi.upper(u<Inf)'*u(u<Inf) ...
+%                 - pi.lower(l~=0)'*l(l~=0);
+%             obj.secondStageValues( inScenNumber ) = fval;
         end
         
         % GenerateObjectiveCut generates an objective cut and adds it to
