@@ -31,10 +31,10 @@ for ii = iiSet
     timeIndiv = toc(timeStart);
     
     p1 = solvedLRLP.pWorst;
-    x1 = solvedLRLP.X;
-    m1 = solvedLRLP.Mu;
-    l1 = solvedLRLP.Lambda;
-    s1 = solvedLRLP.secondStageValues;
+    x1 = solvedLRLP.bestSolution.X;
+    m1 = solvedLRLP.bestSolution.Mu;
+    l1 = solvedLRLP.bestSolution.Lambda;
+    s1 = solvedLRLP.bestSolution.SecondStageValues;
     r1 = solvedLRLP.relativeLikelihood;
     
     if ii==1
