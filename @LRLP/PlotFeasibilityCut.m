@@ -3,7 +3,7 @@ function PlotFeasibilityCut( obj, inVariableNumber, inCutNumber, ylim )
 
 A = obj.feasibilityCutsMatrix;
 b = obj.feasibilityCutsRHS;
-soln = obj.candidateSolution;
+soln = obj.GetDecisions( obj.candidateSolution );
 soln(obj.THETA) = 0;
 
 slope = A( inCutNumber, inVariableNumber );

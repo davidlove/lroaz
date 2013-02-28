@@ -36,19 +36,18 @@ classdef LRLP < handle
     end
     
     %     Bender's Decomposition Parameters
-    properties %(Access=private)
+    properties (Access=private)
         candidateSolution
-        bestSolution
         secondBestSolution
-        thetaTrue
+%         thetaTrue
         zLower
         zUpper
         objectiveCutsMatrix
         objectiveCutsRHS
         feasibilityCutsMatrix
         feasibilityCutsRHS
-        secondStageValues
-        secondStageDuals
+%         secondStageValues
+%         secondStageDuals
         trustRegionSize
         trustRegionLower
         trustRegionUpper
@@ -59,6 +58,7 @@ classdef LRLP < handle
     
     %     LRLP Solution Parameters
     properties (GetAccess=public, SetAccess=private)
+        bestSolution
         currentObjectiveTolerance
         currentProbabilityTolerance
         pWorst
@@ -67,8 +67,8 @@ classdef LRLP < handle
     
     %     Boolean parameters for the algorithm
     properties %(Access=private)
-        candidateMuIsFeasible
-        trustRegionInterior
+%         candidateMuIsFeasible
+%         trustRegionInterior
         newSolutionAccepted
         zLowerUpdated
         trustRegionScaled
@@ -133,6 +133,7 @@ classdef LRLP < handle
             obj.SCALE_UP = 1;
             obj.SCALE_DOWN = 2;
             
+            obj.candidateSolution = Solution( obj.lpModel, 'single' );
             obj.InitializeBenders();
             
             obj.trustRegionMinSize = obj.trustRegionSize / 10;
@@ -170,12 +171,12 @@ classdef LRLP < handle
             % Solve first stage LP
             switch obj.optimizer
                 case 'linprog'
-                    [x0,fval,exitFlag] = linprog(obj.lpModel.c, ...
+                    [x0,~,exitFlag] = linprog(obj.lpModel.c, ...
                         [], [], ...
                         obj.lpModel.A, obj.lpModel.b, ...
                         obj.lpModel.l, obj.lpModel.u);
                 case 'cplexlp'
-                    [x0,fval,exitFlag] = cplexlp(obj.lpModel.c, ...
+                    [x0,~,exitFlag] = cplexlp(obj.lpModel.c, ...
                         [], [], ...
                         obj.lpModel.A, obj.lpModel.b, ...
                         obj.lpModel.l, obj.lpModel.u);
@@ -192,12 +193,15 @@ classdef LRLP < handle
             
             obj.trustRegionSize = 1*max(abs(x0));
             
-            obj.candidateSolution = [x0; 0; 0; 0];
-            obj.candidateSolution(obj.LAMBDA) = 1;
-            obj.candidateSolution(obj.MU) = -Inf;
-            obj.candidateSolution(obj.THETA) = -Inf;
+            obj.candidateSolution.SetX( x0 );
+            obj.candidateSolution.SetLambda( 1 );
+            obj.candidateSolution.SetMu( -Inf );
+            % obj.candidateSolution = [x0; 0; 0; 0];
+            % obj.candidateSolution(obj.LAMBDA) = 1;
+            % obj.candidateSolution(obj.MU) = -Inf;
+            % obj.candidateSolution(obj.THETA) = -Inf;
             
-            assert( length(obj.candidateSolution) == obj.THETA );
+            % assert( length(obj.candidateSolution) == obj.THETA );
             
             obj.SolveSubProblems();
             obj.GenerateCuts();
@@ -227,33 +231,37 @@ classdef LRLP < handle
             lMaster = obj.GetMasterl();
             uMaster = obj.GetMasteru();
             
+            currentBest = obj.GetDecisions( obj.bestSolution );
+
             % Best solution should be feasible
-            feasTol = max(abs(obj.bestSolution)) * 1e-8;
-            assert( all( abs( AMaster*obj.bestSolution - bMaster ) ...
+            feasTol = max(abs(currentBest)) * 1e-8;
+            assert( all( abs( AMaster*currentBest - bMaster ) ...
                 < feasTol ), ...
                 ['bestSolution master infeasibility: ' ...
-                num2str(max(abs( AMaster*obj.bestSolution - bMaster )))])
-            assert( all( obj.objectiveCutsMatrix*obj.bestSolution ...
+                num2str(max(abs( AMaster*currentBest - bMaster )))])
+            assert( all( obj.objectiveCutsMatrix*currentBest ...
                 - obj.objectiveCutsRHS < feasTol ), ...
                 ['bestSolution objective infeasibility: ' ...
-                num2str( max(obj.objectiveCutsMatrix*obj.bestSolution ...
+                num2str( max(obj.objectiveCutsMatrix*currentBest ...
                 - obj.objectiveCutsRHS) )] )
-            assert( all( obj.feasibilityCutsMatrix*obj.bestSolution ...
+            assert( all( obj.feasibilityCutsMatrix*currentBest ...
                 - obj.feasibilityCutsRHS < feasTol ), ...
                 ['bestSolution feasibility infeasibility: ' ...
-                num2str( max(obj.feasibilityCutsMatrix*obj.bestSolution ...
+                num2str( max(obj.feasibilityCutsMatrix*currentBest ...
                 - obj.feasibilityCutsRHS) )] )
+
+            obj.candidateSolution.Reset;
             
             switch obj.optimizer
                 case 'linprog'
-                    [obj.candidateSolution,~,exitFlag] = linprog( cMaster, ...
+                    [currentCandidate,~,exitFlag] = linprog( cMaster, ...
                         [obj.objectiveCutsMatrix; obj.feasibilityCutsMatrix], ...
                         [obj.objectiveCutsRHS   ; obj.feasibilityCutsRHS   ], ...
                         AMaster, bMaster, ...
                         lMaster, uMaster, ...
                         [], obj.optimizerOptions );
                 case 'cplexlp'
-                    [obj.candidateSolution,~,exitFlag] = cplexlp( cMaster, ...
+                    [currentCandidate,~,exitFlag] = cplexlp( cMaster, ...
                         [obj.objectiveCutsMatrix; obj.feasibilityCutsMatrix], ...
                         [obj.objectiveCutsRHS   ; obj.feasibilityCutsRHS   ], ...
                         AMaster, bMaster, ...
@@ -262,29 +270,34 @@ classdef LRLP < handle
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
+
+            obj.candidateSolution.SetX( currentCandidate(1:end-3) )
+            obj.candidateSolution.SetLambda( currentCandidate(obj.LAMBDA) )
+            obj.candidateSolution.SetMu( currentCandidate(obj.MU) )
+            obj.candidateSolution.SetTheta( currentCandidate(obj.THETA), 'master' )
             
             % If Matlab fails to find an optimal solution, whether it
             % recongnizes it (bet setting exitFlag < 1) or  not (by not
             % beating bestSolution), return immediately and let the program
             % controlling LRLP handle it.
             if exitFlag ~= 1 || ...
-                    cMaster*(obj.bestSolution - obj.candidateSolution) < 0
+                    cMaster*(currentBest - currentCandidate) < 0
                 if exitFlag == 1
                     exitFlag = -50;
                 end
                 return
             end
             
-            assert( length(obj.candidateSolution) == length(obj.bestSolution) );
+%             assert( length(currentCandidate) == length(currentBest) );
             
-            assert( obj.candidateSolution(obj.LAMBDA) > 0 );
+%             assert( currentCandidate(obj.LAMBDA) > 0 );
             
             % Any accepted solution should be better than the previous
             % best.
             assert( exitFlag ~= 1 || ...
-                cMaster * (obj.bestSolution - obj.candidateSolution) >= 0, ...
+                cMaster * (currentBest - currentCandidate) >= 0, ...
                 ['Actual objective drop = ' ...
-                num2str( cMaster * (obj.bestSolution - obj.candidateSolution) )])
+                num2str( cMaster * (currentBest - currentCandidate) )])
             
             upperT = ((1+obj.trustRegionRatio)*obj.trustRegionUpper ...
                 + (1-obj.trustRegionRatio)*obj.trustRegionLower) ...
@@ -302,8 +315,8 @@ classdef LRLP < handle
                 - (obj.trustRegionUpper(ind) + obj.trustRegionLower(ind))/2 ...
                 < 1e-6 ) )
             
-            obj.trustRegionInterior = ~any( lowerT(ind) > obj.candidateSolution(ind) ...
-                | obj.candidateSolution(ind) > upperT(ind) );
+            obj.candidateSolution.SetTrustRegionInterior( ~any( lowerT(ind) > currentCandidate(ind) ...
+                | currentCandidate(ind) > upperT(ind) ) );
         end
         
         % SolveSubProblems solves all subproblems, generates second stage
@@ -317,17 +330,17 @@ classdef LRLP < handle
                 obj.SubProblem( scenarioNum, solution );
             end
             
-            if obj.GetMu( solution ) > max( obj.secondStageValues )
-                obj.candidateMuIsFeasible = true;
-            else
-                obj.candidateMuIsFeasible = false;
-            end
+%             if obj.GetMu( solution ) > max( obj.secondStageValues )
+%                 obj.candidateMuIsFeasible = true;
+%             else
+%                 obj.candidateMuIsFeasible = false;
+%             end
         end
         
         % GenerateCuts generates objective cut, and if necessary, generates
         % a feasibility cut and finds a good feasible value of mu
         function GenerateCuts( obj )
-            if ~obj.candidateMuIsFeasible
+            if ~obj.candidateSolution.MuFeasible
                 obj.GenerateFeasibilityCut();
                 obj.FindFeasibleMu();
             end
@@ -364,17 +377,19 @@ classdef LRLP < handle
             cMaster = obj.GetMasterc();
             if obj.newSolutionAccepted
                 obj.UpdateBestSolution();
-                assert( cMaster*obj.bestSolution <= obj.zUpper, ...
+                bestDecisions = obj.GetDecisions( obj.bestSolution, 'true' );
+                assert( cMaster*bestDecisions <= obj.zUpper, ...
                     ['rho = ' num2str(obj.trustRegionRho)])
-                obj.zUpper = cMaster*obj.bestSolution;
+                obj.zUpper = cMaster*bestDecisions;
             end
             
             if obj.newSolutionAccepted ...
-                    && obj.candidateMuIsFeasible ...
-                    && obj.trustRegionInterior
-                assert( cMaster*obj.candidateSolution >= obj.zLower )
+                    && obj.candidateSolution.MuFeasible ...
+                    && obj.candidateSolution.TrustRegionInterior
+                candidateDecisions = obj.GetDecisions( obj.candidateSolution, 'master' );
+                assert( cMaster*candidateDecisions >= obj.zLower )
                 obj.zLowerUpdated = true;
-                obj.zLower = cMaster*obj.candidateSolution;
+                obj.zLower = cMaster*candidateDecisions;
             else
                 obj.zLowerUpdated = false;
             end
@@ -401,13 +416,13 @@ classdef LRLP < handle
             disp([num2str(obj.NumObjectiveCuts) ' objective cuts, '...
                 num2str(obj.NumFeasibilityCuts) ' feasibility cuts.'])
             
-            if obj.candidateMuIsFeasible
+            if obj.candidateSolution.MuFeasible
                 disp('No feasibility cut generated')
             else
                 disp('Feasibility cut generated')
             end
             
-            if obj.trustRegionInterior
+            if obj.candidateSolution.TrustRegionInterior
                 disp(['Candidate solution in trust region interior, '...
                     'rho = ' num2str(obj.trustRegionRho)])
             else
@@ -456,24 +471,24 @@ classdef LRLP < handle
                 error('Must choose variable in the original LP model')
             end
             
-            origCandidate = obj.candidateSolution;
-            origBest = obj.bestSolution;
-            origSecondBest = obj.secondBestSolution;
-            origSecondDuals = obj.secondStageDuals;
-            origSecondValues = obj.secondStageValues;
-            origTheta = obj.thetaTrue;
+%             origCandidate = obj.candidateSolution;
+%             origBest = obj.bestSolution;
+%             origSecondBest = obj.secondBestSolution;
+%             origSecondDuals = obj.secondStageDuals;
+%             origSecondValues = obj.secondStageValues;
+%             origTheta = obj.thetaTrue;
             
             obj.PlotStep( variableNumber );
             obj.PlotStep( obj.LAMBDA );
             obj.PlotStep( obj.MU );
             
             % Ensure that no second stage properties while plotting
-            assert( isequal( origCandidate, obj.candidateSolution ) )
-            assert( isequal( origBest, obj.bestSolution ) )
-            assert( isequal( origSecondBest, obj.secondBestSolution ) )
-            assert( isequal( origSecondDuals, obj.secondStageDuals ) )
-            assert( isequal( origSecondValues, obj.secondStageValues ) )
-            assert( isequal( origTheta, obj.thetaTrue ) )
+%             assert( isequal( origCandidate, obj.candidateSolution ) )
+%             assert( isequal( origBest, obj.bestSolution ) )
+%             assert( isequal( origSecondBest, obj.secondBestSolution ) )
+%             assert( isequal( origSecondDuals, obj.secondStageDuals ) )
+%             assert( isequal( origSecondValues, obj.secondStageValues ) )
+%             assert( isequal( origTheta, obj.thetaTrue ) )
             
         end
         
@@ -525,7 +540,7 @@ classdef LRLP < handle
             l = obj.lpModel.Getl2( inScenNumber );
             u = obj.lpModel.Getu2( inScenNumber );
             
-            xLocal = obj.GetX( inSolution );
+            xLocal = inSolution.X;
             
             options = optimset('Display','off');
             
@@ -545,33 +560,41 @@ classdef LRLP < handle
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
-            
-            obj.secondStageDuals{ inScenNumber, obj.SLOPE } = sparse(-pi.eqlin'*B);
-            obj.secondStageDuals{ inScenNumber, obj.INTERCEPT } ...
-                = - pi.eqlin'*d ...
+
+            inSolution.SetSecondStageDual( inScenNumber, sparse(-pi.eqlin'*B), 'slope' )
+            inSolution.SetSecondStageDual( inScenNumber, - pi.eqlin'*d ...
                 - pi.upper(u<Inf)'*u(u<Inf) ...
-                - pi.lower(l~=0)'*l(l~=0);
-            obj.secondStageValues( inScenNumber ) = fval;
+                - pi.lower(l~=0)'*l(l~=0), 'int' )
+            inSolution.SetSecondStageValue( inScenNumber, fval )
+            
+%             obj.secondStageDuals{ inScenNumber, obj.SLOPE } = sparse(-pi.eqlin'*B);
+%             obj.secondStageDuals{ inScenNumber, obj.INTERCEPT } ...
+%                 = - pi.eqlin'*d ...
+%                 - pi.upper(u<Inf)'*u(u<Inf) ...
+%                 - pi.lower(l~=0)'*l(l~=0);
+%             obj.secondStageValues( inScenNumber ) = fval;
         end
         
         % GenerateObjectiveCut generates an objective cut and adds it to
         % the matrix
         function GenerateObjectiveCut( obj )
-            xLocal = obj.GetX( obj.candidateSolution );
-            lambdaLocal = obj.GetLambda( obj.candidateSolution );
-            muLocal = obj.GetMu( obj.candidateSolution );
+            xLocal = obj.candidateSolution.X;
+            lambdaLocal = obj.candidateSolution.Lambda;
+            muLocal = obj.candidateSolution.Mu;
+
+            localValues = obj.candidateSolution.SecondStageValues;
             
             intermediateSlope = zeros(obj.lpModel.numScenarios, size(obj.lpModel.A,2)+2);
             
             for ii=1:obj.lpModel.numScenarios
                 intermediateSlope(ii,:) ...
-                    = [ obj.numObsTotal*lambdaLocal*(obj.secondStageDuals{ii,obj.SLOPE}./(muLocal - obj.secondStageValues(ii))), ...
-                    obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - obj.secondStageValues(ii)), ...
-                    -obj.numObsTotal*lambdaLocal/(muLocal-obj.secondStageValues(ii))];
+                    = [ obj.numObsTotal*lambdaLocal*(obj.candidateSolution.SecondStageSlope(ii)./(muLocal - localValues(ii))), ...
+                    obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - localValues(ii)), ...
+                    -obj.numObsTotal*lambdaLocal/(muLocal-localValues(ii))];
             end
             
             slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
-            intercept = obj.thetaTrue - slope*[xLocal;lambdaLocal;muLocal];
+            intercept = obj.candidateSolution.ThetaTrue - slope*[xLocal;lambdaLocal;muLocal];
             
             obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; sparse([slope, -1])];
             obj.objectiveCutsRHS = [obj.objectiveCutsRHS; -intercept];
@@ -580,10 +603,10 @@ classdef LRLP < handle
         % GenerateFeasibilityCut generates a feasibility cut and adds it to
         % the matrix
         function GenerateFeasibilityCut( obj )
-            [~,hIndex] = max( obj.secondStageValues );
+            [~,hIndex] = max( obj.candidateSolution.SecondStageValues );
             
-            feasSlope = [obj.secondStageDuals{hIndex,obj.SLOPE}, 0, -1, 0];
-            feasInt = obj.secondStageDuals{hIndex,obj.INTERCEPT};
+            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), 0, -1, 0];
+            feasInt = obj.candidateSolution.SecondStageIntercept(hIndex);
             
             obj.feasibilityCutsMatrix = [obj.feasibilityCutsMatrix; sparse(feasSlope)];
             obj.feasibilityCutsRHS = [obj.feasibilityCutsRHS; -feasInt];
@@ -592,26 +615,27 @@ classdef LRLP < handle
         % FindFeasibleMu uses Newton's Method to find a feasible value of
         % mu
         function FindFeasibleMu( obj )
-            lambdaLocal = obj.GetLambda( obj.candidateSolution );
+            lambdaLocal = obj.candidateSolution.Lambda;
             
-            [hMax hIndex] = max( obj.secondStageValues );
+            localValues = obj.candidateSolution.SecondStageValues;
+            [hMax hIndex] = max( localValues );
             mu = obj.lpModel.numScenarios/2 ...
                 * obj.numObsPerScen(hIndex)*lambdaLocal() ...
                 + hMax;
             
             for ii=1:200
                 muOld = mu;
-                mu = mu + (sum(lambdaLocal() * obj.numObsPerScen'./(mu - obj.secondStageValues))-1) / ...
-                    sum(lambdaLocal() * obj.numObsPerScen'./((mu - obj.secondStageValues).^2));
+                mu = mu + (sum(lambdaLocal() * obj.numObsPerScen'./(mu - localValues))-1) / ...
+                    sum(lambdaLocal() * obj.numObsPerScen'./((mu - localValues).^2));
                 if abs(mu - muOld) < min(mu,muOld)*0.01
                     break
                 end
             end
 %             obj.candidateSolution( obj.MU ) = max(mu, hMax+1);
             if mu > hMax
-                obj.candidateSolution( obj.MU ) = mu;
+                obj.candidateSolution.SetMu( mu );
             else
-                obj.candidateSolution( obj.Mu ) = hMax*1.001;
+                obj.candidateSolution.SetMu( hMax*1.001 );
             end
         end
         
@@ -622,41 +646,45 @@ classdef LRLP < handle
                 inSolution = obj.candidateSolution;
             end
             
-            if isempty( obj.candidateMuIsFeasible )
+            if isempty( inSolution.MuFeasible )
                 error(['Must determine whether candidate mu is feasible ' ...
                     'before finding expected second stage value'])
             end
+            if ~all( inSolution.SecondStageValues > -Inf )
+                error('Must set second stage values before calculating expectation')
+            end
             
-            lambdaLocal = obj.GetLambda( inSolution );
-            muLocal = obj.GetMu( inSolution );
+            lambdaLocal = inSolution.Lambda;
+            muLocal = inSolution.Mu;
             
-            obj.thetaTrue = obj.numObsPerScen/obj.numObsTotal ...
+            inSolution.SetTheta( obj.numObsPerScen/obj.numObsTotal ...
                 * ( obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
-                - obj.numObsTotal*lambdaLocal*log(muLocal-obj.secondStageValues) );
+                - obj.numObsTotal*lambdaLocal*log(muLocal-inSolution.SecondStageValues) ), ...
+                'true' );
         end
         
         % CalculateRho calculates the value of trustRegionRho
         function CalculateTrustRegionDecisions( obj )
             cMaster = obj.GetMasterc();
             
-            initialSolution = obj.bestSolution;
-            candidate = obj.candidateSolution;
-            truth = candidate;
-            if ~isempty(obj.thetaTrue)
-                truth(obj.THETA) = obj.thetaTrue;
-            else
-                error('True theta not yet calculated')
-            end
+            initialSolution = obj.GetDecisions( obj.bestSolution, 'true' );
+            candidate = obj.GetDecisions( obj.candidateSolution, 'master' );
+            truth = obj.GetDecisions( obj.candidateSolution, 'true' );
+%             if ~isempty(obj.thetaTrue)
+%                 truth(obj.THETA) = obj.thetaTrue;
+%             else
+%                 error('True theta not yet calculated')
+%             end
             
             trueDrop = cMaster*(initialSolution - truth);
             predictedDrop = cMaster*(initialSolution - candidate);
             
             % Infeasible candidate solutions might not produce a predicted
             % drop after they are made feasible
-            assert( ~obj.candidateMuIsFeasible || predictedDrop >= 0 )
+            assert( ~obj.candidateSolution.MuFeasible || predictedDrop >= 0 )
             
-            if obj.candidateMuIsFeasible
-                if isempty( obj.trustRegionInterior )
+            if obj.candidateSolution.MuFeasible
+                if isempty( obj.candidateSolution.TrustRegionInterior )
                     error( ['Undetermined whether solution exists in trust ' ...
                         'region interior'])
                 end
@@ -664,7 +692,7 @@ classdef LRLP < handle
                 if trueDrop < obj.trustRegionRhoBound * predictedDrop
                     obj.trustRegionScaled = obj.SCALE_DOWN;
                 elseif trueDrop > (1-obj.trustRegionRhoBound) * predictedDrop ...
-                        && ~obj.trustRegionInterior
+                        && ~obj.candidateSolution.TrustRegionInterior
                     obj.trustRegionScaled = obj.SCALE_UP;
                 else
                     obj.trustRegionScaled = obj.NO_SCALE;
@@ -687,9 +715,13 @@ classdef LRLP < handle
         % true value of theta
         function UpdateBestSolution( obj )
             if obj.newSolutionAccepted
-                obj.secondBestSolution = obj.bestSolution;
-                obj.bestSolution = obj.candidateSolution;
-                obj.bestSolution(obj.THETA) = obj.thetaTrue;
+                if ~isempty( obj.bestSolution )
+                    obj.secondBestSolution = obj.bestSolution.copy;
+                end
+                obj.bestSolution = obj.candidateSolution.copy;
+%                 obj.secondBestSolution = obj.bestSolution;
+%                 obj.bestSolution = obj.candidateSolution;
+%                 obj.bestSolution(obj.THETA) = obj.thetaTrue;
                 obj.CalculateProbability();
             end
         end
@@ -698,8 +730,8 @@ classdef LRLP < handle
         % the current best solution
         function CalculateProbability( obj )
             % obj.SolveSubProblems( obj.bestSolution );
-            obj.pWorst = obj.GetLambda(obj.bestSolution)*obj.numObsPerScen ...
-                ./(obj.GetMu(obj.bestSolution)-obj.secondStageValues');
+            obj.pWorst = obj.bestSolution.Lambda*obj.numObsPerScen ...
+                ./(obj.bestSolution.Mu-obj.bestSolution.SecondStageValues');
             obj.relativeLikelihood ...
                 = exp(sum( obj.numObsPerScen.*( log(obj.pWorst) ...
                 -log(obj.numObsPerScen/obj.numObsTotal) ) ));
@@ -708,13 +740,12 @@ classdef LRLP < handle
         % ResetSecondStageSolutions clears the second stage solution values
         % and dual solution information
         function ResetSecondStageSolutions( obj )
-            obj.candidateSolution = [];
-            obj.secondStageValues = -Inf(obj.lpModel.numScenarios,1);
-            obj.secondStageDuals = cell(obj.lpModel.numScenarios,2);
-            obj.candidateSolution = [];
-            obj.thetaTrue = [];
-            obj.candidateMuIsFeasible = [];
-            obj.trustRegionInterior = [];
+            obj.candidateSolution.Reset();
+%             obj.secondStageValues = -Inf(obj.lpModel.numScenarios,1);
+%             obj.secondStageDuals = cell(obj.lpModel.numScenarios,2);
+%             obj.thetaTrue = [];
+%             obj.candidateMuIsFeasible = [];
+%             obj.trustRegionInterior = [];
             obj.newSolutionAccepted = [];
             obj.zLowerUpdated = [];
             obj.trustRegionScaled = [];
@@ -741,11 +772,12 @@ classdef LRLP < handle
         % GetMasterl gets the lower bound for the master problem
         function lOut = GetMasterl( obj )
             lOut = [obj.lpModel.l; 0; 0; 0];
-            lOut(obj.LAMBDA) = obj.bestSolution(obj.LAMBDA) / 100;
+            lOut(obj.LAMBDA) = obj.bestSolution.Lambda / 100;
             lOut(obj.MU) = -Inf;
             lOut(obj.THETA) = -Inf;
             
-            obj.trustRegionLower = obj.bestSolution - obj.trustRegionSize;
+            obj.trustRegionLower = obj.GetDecisions(obj.bestSolution) ...
+                - obj.trustRegionSize;
             obj.trustRegionLower(obj.THETA) = -Inf;
             
             lOut = max( lOut, obj.trustRegionLower );
@@ -758,45 +790,68 @@ classdef LRLP < handle
             uOut(obj.MU) = Inf;
             uOut(obj.THETA) = Inf;
             
-            obj.trustRegionUpper = obj.bestSolution + obj.trustRegionSize;
+            obj.trustRegionUpper = obj.GetDecisions(obj.bestSolution) ...
+                + obj.trustRegionSize;
             obj.trustRegionUpper(obj.THETA) = Inf;
             
             uOut = min( uOut, obj.trustRegionUpper );
         end
         
-        % GetX gets the decisions x from the given solution
-        function outX = GetX( obj, solution )
-            outX = solution( 1:size(obj.lpModel.A,2) );
+        % GetDecisions takes the first stage data from a Solution object
+        % and formats it in a vector
+        function vOut = GetDecisions( obj, solution, inType )
+            if nargin < 3
+                inType = 'true';
+            end
+            vOut = [solution.X; 0; 0; 0];
+            vOut(obj.LAMBDA) = solution.Lambda;
+            vOut(obj.MU) = solution.Mu;
+            switch inType
+                case 'master'
+                    vOut(obj.THETA) = solution.ThetaMaster;
+                case 'true'
+                    vOut(obj.THETA) = solution.ThetaTrue;
+                otherwise
+                    error( 'Only accepts ''master and ''true''' )
+            end
         end
         
-        % GetLambda gets lambda from the given solution
-        function outLambda = GetLambda( obj, solution )
-            outLambda = solution( obj.LAMBDA );
-        end
-        
-        % GetMU gets mu from the given solution
-        function outMu = GetMu( obj, solution )
-            outMu = solution( obj.MU );
-        end
-        
+%         % GetX gets the decisions x from the given solution
+%         function outX = GetX( obj, solution )
+%             outX = solution( 1:size(obj.lpModel.A,2) );
+%         end
+%         
+%         % GetLambda gets lambda from the given solution
+%         function outLambda = GetLambda( obj, solution )
+%             outLambda = solution( obj.LAMBDA );
+%         end
+%         
+%         % GetMU gets mu from the given solution
+%         function outMu = GetMu( obj, solution )
+%             outMu = solution( obj.MU );
+%         end
     end
-    
+
     %     Accessor methods
     methods (Access=public)
-        % X returns the best value of decisions x
-        function outX = X( obj )
-            outX = obj.GetX( obj.bestSolution );
+        % CandidateVector returns the current candidate vector
+        function outCV = CandidateVector( obj )
+            outCV = obj.GetDecisions( obj.candidateSolution, 'master' );
         end
-        
-        % Lambda returns the best value of lambda
-        function outLambda = Lambda( obj )
-            outLambda = obj.GetLambda( obj.bestSolution ) / obj.objectiveScale;
-        end
-        
-        % Mu returns the best value of mu
-        function outMu = Mu( obj )
-            outMu = obj.GetMu( obj.bestSolution ) / obj.objectiveScale;
-        end
+%         % X returns the best value of decisions x
+%         function outX = X( obj )
+%             outX = obj.GetX( obj.bestSolution );
+%         end
+%         
+%         % Lambda returns the best value of lambda
+%         function outLambda = Lambda( obj )
+%             outLambda = obj.GetLambda( obj.bestSolution ) / obj.objectiveScale;
+%         end
+%         
+%         % Mu returns the best value of mu
+%         function outMu = Mu( obj )
+%             outMu = obj.GetMu( obj.bestSolution ) / obj.objectiveScale;
+%         end
         
         % NumObjectiveCuts returns the number of objective cuts
         function outNum = NumObjectiveCuts( obj )

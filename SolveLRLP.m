@@ -22,13 +22,10 @@ totalProblemsSolved = 1;
 totalCutsMade = 1;
 while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     totalProblemsSolved = totalProblemsSolved + 1;
-    if totalProblemsSolved >= 80
-        1;
-    end
     
     exitFlag = lrlp.SolveMasterProblem;
-    if exitFlag ~= 1 || (exist('cS','var') && isequal(cS,lrlp.candidateSolution))
-        if cS == lrlp.candidateSolution
+    if exitFlag ~= 1 || (exist('cS','var') && isequal(cS,lrlp.CandidateVector))
+        if cS == lrlp.CandidateVector
             exitFlag = -100;
         end
         disp(['exitFlag = ' num2str(exitFlag)])
@@ -56,49 +53,49 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
             num2str(lrlp.NumFeasibilityCuts) ' Feasibility Cuts Remaining.'])
         continue
     end
-    cS = lrlp.candidateSolution;
+    cS = lrlp.CandidateVector;
     
     lrlp.SolveSubProblems;
-    assert( isequal( cS, lrlp.candidateSolution ), ...
-        num2str([cS, lrlp.candidateSolution]) )
-    cMIF = lrlp.candidateMuIsFeasible;
+%     assert( isequal( cS, lrlp.candidateSolution ), ...
+%         num2str([cS, lrlp.candidateSolution]) )
+%     cMIF = lrlp.candidateMuIsFeasible;
     
     totalCutsMade = totalCutsMade + 1;
     lrlp.GenerateCuts;
-    assert( ~lrlp.candidateMuIsFeasible ...
-        || isequal( cS, lrlp.candidateSolution ), ...
-        num2str([cS, lrlp.candidateSolution]) )
-    assert( cMIF == lrlp.candidateMuIsFeasible )
-    cS = lrlp.candidateSolution;
+%     assert( ~lrlp.candidateMuIsFeasible ...
+%         || isequal( cS, lrlp.candidateSolution ), ...
+%         num2str([cS, lrlp.candidateSolution]) )
+%     assert( cMIF == lrlp.candidateMuIsFeasible )
+%     cS = lrlp.candidateSolution;
     
     % Note, putting plot after updating trust region or solution will
     % result in it plotting the wrong trust region
     if isGraphical
         lrlp.Plot;
-        assert( isequal( cS, lrlp.candidateSolution ), ...
-            num2str([cS, lrlp.candidateSolution]) )
-        assert( cMIF == lrlp.candidateMuIsFeasible )
+%         assert( isequal( cS, lrlp.candidateSolution ), ...
+%             num2str([cS, lrlp.candidateSolution]) )
+%         assert( cMIF == lrlp.candidateMuIsFeasible )
     end
     
     lrlp.UpdateTrustRegionSize;
-    assert( isequal( cS, lrlp.candidateSolution ), ...
-        num2str([cS, lrlp.candidateSolution]) )
-    assert( cMIF == lrlp.candidateMuIsFeasible )
+%     assert( isequal( cS, lrlp.candidateSolution ), ...
+%         num2str([cS, lrlp.candidateSolution]) )
+%     assert( cMIF == lrlp.candidateMuIsFeasible )
     
     lrlp.UpdateSolutions;
-    assert( isequal( cS, lrlp.candidateSolution ), ...
-        num2str([cS, lrlp.candidateSolution]) )
-    assert( cMIF == lrlp.candidateMuIsFeasible )
+%     assert( isequal( cS, lrlp.candidateSolution ), ...
+%         num2str([cS, lrlp.candidateSolution]) )
+%     assert( cMIF == lrlp.candidateMuIsFeasible )
     
     lrlp.UpdateTolerances;
-    assert( isequal( cS, lrlp.candidateSolution ), ...
-        num2str([cS, lrlp.candidateSolution]) )
-    assert( cMIF == lrlp.candidateMuIsFeasible )
+%     assert( isequal( cS, lrlp.candidateSolution ), ...
+%         num2str([cS, lrlp.candidateSolution]) )
+%     assert( cMIF == lrlp.candidateMuIsFeasible )
     
     lrlp.WriteProgress;
-    assert( isequal( cS, lrlp.candidateSolution ), ...
-        num2str([cS, lrlp.candidateSolution]) )
-    assert( cMIF == lrlp.candidateMuIsFeasible )
+%     assert( isequal( cS, lrlp.candidateSolution ), ...
+%         num2str([cS, lrlp.candidateSolution]) )
+%     assert( cMIF == lrlp.candidateMuIsFeasible )
     
     disp(['Total cuts made: ' num2str(totalCutsMade)])
     disp(['Total problems solved: ' num2str(totalProblemsSolved)])

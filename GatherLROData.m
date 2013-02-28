@@ -7,10 +7,10 @@ end
 % lpModel = InitializeSimpleTwoStageLP();
 
 waterFolders = { ...
-                 'all_scenarios/5/', ...
-                 'all_scenarios/6/', ...
-                 'all_scenarios/7/', ...
-                 'all_scenarios/8/', ...
+                 'SP C/5/', ...
+                 'SP C/6/', ...
+                 'SP C/7/', ...
+                 'SP C/8/', ...
                };
 years = 41;
 timeLag = 1;
@@ -31,10 +31,10 @@ for ii = iiSet
     timeIndiv = toc(timeStart);
     
     p1 = solvedLRLP.pWorst;
-    x1 = solvedLRLP.X;
-    m1 = solvedLRLP.Mu;
-    l1 = solvedLRLP.Lambda;
-    s1 = solvedLRLP.secondStageValues;
+    x1 = solvedLRLP.bestSolution.X;
+    m1 = solvedLRLP.bestSolution.Mu;
+    l1 = solvedLRLP.bestSolution.Lambda;
+    s1 = solvedLRLP.bestSolution.SecondStageValues;
     r1 = solvedLRLP.relativeLikelihood;
     
     if ii==1
