@@ -29,7 +29,7 @@ for ii = 1:numProblems
         obs = ceil(50*rand(1,4));
     end
     
-    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( simpleLP, gp, obs, false );
+    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( simpleLP, gp, obs, 'multi', false );
     
     tols(ii) = solvedLRLP.currentObjectiveTolerance;
     ptols(ii) = solvedLRLP.currentProbabilityTolerance;

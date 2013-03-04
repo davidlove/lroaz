@@ -1,8 +1,20 @@
 function [lrlp, outTotalCuts, outTotalProbs] = ...
-    SolveLRLP( simpleLP, gp, obs, isGraphical )
+    SolveLRLP( simpleLP, gp, obs, cutType, isGraphical )
 
-if nargin < 4
+if nargin < 5
     isGraphical = false;
+    if nargin < 4
+        cutType = 'multi';
+    end
+end
+
+switch cutType
+    case 'single'
+        % Acceptable, do nothing
+    case 'multi'
+        % Acceptable, do nothing
+    otherwise
+        error([cutType ' is not a valid cut type'])
 end
 
 opt = 'cplexlp';
@@ -16,7 +28,7 @@ else
     disp(' ')
 end
 
-lrlp = LRLP( simpleLP, gp, obs, opt );
+lrlp = LRLP( simpleLP, gp, obs, opt, cutType );
 
 totalProblemsSolved = 1;
 totalCutsMade = 1;
