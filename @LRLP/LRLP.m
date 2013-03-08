@@ -499,7 +499,8 @@ classdef LRLP < handle
         
         PlotStep( obj, inVariableNumber );
         PlotFeasibilityCut( obj, inVariableNumber, inCutNumber, ylim );
-        PlotObjectiveCut( obj, inVariableNumber, inCutNumber, inBounds )
+        PlotObjectiveCut( obj, inVariableNumber, inCutNumber, inBounds );
+        PlotBoundFunction( obj, inVariableNumber, inBounds );
         
         % SubProblem solves an individual subproblem, updating the optimal
         % value and dual solution to the sub problem
