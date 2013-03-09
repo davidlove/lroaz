@@ -6,11 +6,13 @@ soln = obj.GetDecisions( obj.candidateSolution );
 soln(obj.THETA) = 0;
 cMaster = obj.GetMasterc();
 
+numTheta = length(obj.THETA);
+
 x = linspace(inBounds(1),inBounds(end),101).';
-theta = zeros(length(obj.THETA),length(x));
+theta = zeros(numTheta,length(x));
 
 for thetaCount = 1:length(obj.THETA)
-    rows = thetaCount:length(obj.THETA):(size(A,1)-1);
+    rows = thetaCount:numTheta:(size(A,1)-numTheta);
     
     slopes = A(rows,inVariableNumber);
     ints = A(rows,[1:inVariableNumber-1, inVariableNumber+1:end-1]) ...
