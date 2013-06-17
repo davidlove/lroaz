@@ -769,6 +769,11 @@ classdef LRLP < handle
             outNum = size(obj.feasibilityCutsMatrix,1);
         end
         
+        % ObjectiveValue returns the best yet found objective value
+        function outValue = ObjectiveValue( obj )
+            outValue = obj.zUpper;
+        end
+        
     end
     
 end

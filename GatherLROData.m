@@ -36,6 +36,7 @@ for ii = iiSet
     l1 = solvedLRLP.bestSolution.Lambda;
     s1 = solvedLRLP.bestSolution.SecondStageValues;
     r1 = solvedLRLP.relativeLikelihood;
+    z1 = solvedLRLP.ObjectiveValue;
     
     if ii==1
         pWorst = zeros(length(p1),length(gp));
@@ -43,7 +44,7 @@ for ii = iiSet
         lambda = zeros(length(l1),length(gp));
         mu = zeros(length(m1),length(gp));
         scenCosts = zeros(length(s1),length(gp));
-%         zCost = zeros(length(z1),length(gp));
+        objVals = zeros(length(z1),length(gp));
         likelihood = zeros(length(r1),length(gp));
 %         exitFlags = zeros(1,length(gp));
         numProbs = zeros(1,length(gp));
@@ -56,7 +57,7 @@ for ii = iiSet
     lambda(:,ii) = l1;
     mu(:,ii) = m1;
     scenCosts(:,ii) =s1;
-%     zCost(:,ii) = z1;
+    objVals(:,ii) = z1;
     likelihood(:,ii) = r1;
 %     exitFlags(ii) = eF;
     numProbs(ii) = n1;
@@ -64,7 +65,7 @@ for ii = iiSet
     timeRuns(ii) = timeIndiv;
     
     save(saveFileName,'gp','pWorst','x','lambda','mu', ...
-        'scenCosts',...%'zCost',
+        'scenCosts','objVals', ...
         'likelihood', ...
         'numProbs','numCuts','timeRuns');
 %         'exitFlags')
