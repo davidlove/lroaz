@@ -20,8 +20,10 @@ lpModel = LPModel( waterFolders, years, timeLag, firstStageYears );
 
 obs = 1*[1 1 1 1];
 
-dgp = 0.01;
-gp = dgp:dgp:1-dgp;
+% dgp = 0.01;
+% gp = dgp:dgp:1-dgp;
+gp = 10.^linspace(-3,0,100);
+gp(end) = mean(gp(end-1:end));
 
 iiSet = 1:length(gp);
 
