@@ -66,6 +66,16 @@ P    =  7; NP   =  8; RTRN  =  9;
 PMU  = 10; NPMU = 11; PIN   = 12;
 NPIN = 13; PAG  = 14; NPAG  = 15;
 
+sortIndex = [find(Con(1,:) == GW), find(Con(1,:) == WWTP), ...
+    find(Con(1,:) == SW), find(Con(1,:) == WTP), ...
+    find(Con(1,:) == DMY), find(Con(1,:) == RCHRG), ...
+    find(Con(1,:) == P), find(Con(1,:) == NP), ...
+    find(Con(1,:) == RTRN)];
+assert( length(sortIndex) == size(Con,2), 'Source list contains demand nodes' )
+source_type_temp = Con(1,sortIndex);
+Con_temp = Con(2:end,sortIndex);
+sourceID_temp = Name.source(sortIndex);
+
 %preallocate
 gwN   = 0; wwtpN = 0; swN    = 0;
 wtpN  = 0; dmyN  = 0; rchrgN = 0;
@@ -146,6 +156,16 @@ waterSources = find(source_type == GW | source_type == SW);
 storageSources = find(source_type == GW | source_type == RCHRG);
 releaseSources = find(source_type == SW | source_type == WWTP);
 ST_temp = length(waterSources);
+
+assert( isequal(Con,Con_temp) )
+assert( isequal(sourceID,sourceID_temp) )
+assert( isequal(source_type,source_type_temp) )
+assert( isequal(ST,ST_temp) )
+
+Con = Con_temp;
+sourceID = sourceID_temp;
+source_type = source_type_temp;
+ST = ST_temp;
 
 % Check that the number of arcs hasn't changed
 assert(numArcs + sum(sum(Con==0)) - numel(Con) == 0);
