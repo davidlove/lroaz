@@ -128,12 +128,24 @@ Con = [gwsource,wwtpsource,swsource,wtpsource,...
     dmysource,rchrgsource,psource,npsource,rtrnsource];
 sourceID = [gwID,wwtpID,swID,wtpID,dmyID,rchrgID,pID,npID,rtrnID];
 ST = gwN + swN;
-
 % empties = S==0; % identify the empty cells
 % S(empties) = [];
 empties = find(cellfun(@isempty,sourceID));
 sourceID(empties) = [];
 Con(:,empties) = [];
+source_type = zeros(1,length(sourceID));
+s = 0;
+for ii = 1:length(S)
+    for jj = 1:S(ii)
+        s = s+1;
+        source_type(s) = ii;
+    end
+end
+
+waterSources = find(source_type == GW | source_type == SW);
+storageSources = find(source_type == GW | source_type == RCHRG);
+releaseSources = find(source_type == SW | source_type == WWTP);
+ST_temp = length(waterSources);
 
 % Check that the number of arcs hasn't changed
 assert(numArcs + sum(sum(Con==0)) - numel(Con) == 0);
@@ -217,10 +229,109 @@ A_lag = zeros(userN*2+ST,sourceN*userN+userN+sourceN*2+1);
 Nr = cell(2*userN+ST,1);
 Nr(1:userN,1) = userID';
 Nc = cell(1,sourceN*userN+userN+sourceN*2+1);
+
 % clc;
 
 %% Build Equality Matrix A
 disp('Building Matrix...');
+
+lossWWTPSolid = 0.05;
+lossEvaporation = 0.03;
+lossPercent = 0.01;
+lossArray = -ones(NPAG,NPAG);
+lossArray(WWTP,[WWTP,WTP]) = lossWWTPSolid;
+lossArray(RCHRG,[WWTP,SW]) = 0;
+lossArray(:,DMY) = 0;
+lossArray(lossArray == -1) = lossPercent;
+
+numConstraints = userN*2 + ST;
+numVars = numArcs + length(storageSources) + length(releaseSources) + userN;
+A_temp = zeros(numConstraints,numVars);
+A_st_temp = zeros(numConstraints,numVars);
+A_lag_temp = zeros(numConstraints,numVars);
+A_temp( 1:userN          ,end-userN+1:end) = -eye(userN);
+A_temp((1:userN)+userN+ST,end-userN+1:end) = eye(userN);
+Nr_temp = cell(numConstraints,1);
+Nr_temp(1:userN) = userID;
+Nc_temp = cell(1,numVars);
+[users, sources] = find(Con);
+for arc = 1:length(users)
+    if arc == 51
+    end
+    u = users(arc);
+    s = sources(arc);
+    s_on_u = find(strcmp(sourceID{s},userID));
+    if length(s_on_u) < 1
+        if ismember(s, waterSources)
+            s_on_u = userN + find(waterSources == s);
+            Nr_temp{s_on_u} = sourceID{s};
+        elseif source_type(s) == DMY
+            % Do nothing, no source for dummy nodes
+        end
+    elseif length(s_on_u) > 1
+        error(['Too many copies of ' userID{s}])
+    end
+    
+    Nc_temp{arc} = sourceID{s};
+%     obj.variableNames{arc} = [sourceID{s} '-->>' userID{u}];
+    
+    % Inflow to user node
+    if user_type(u) ~= RCHRG
+        A_temp(u,arc) = 1;
+    else
+        A_lag_temp(u,arc) = 1;
+        A_lag_temp(userN+ST+u,arc) = -lossEvaporation;
+    end
+    
+    % Outflow from source node
+    if ~isempty(s_on_u)
+        A_temp(s_on_u,arc) = -1;
+    end
+    
+    % Loss along flows
+    A_temp(userN+ST+u,arc) = -lossArray(user_type(u),source_type(s));
+    if strncmpi(sourceID(s),'RO',2) == 1 && strncmpi(userID(u),'DemNP',5) ~= 1
+        A_temp(userN+ST+u,arc) = -.25;
+    end
+    if A_temp(userN+ST+u,arc) == -lossPercent
+        Nr_temp{userN+ST+u} = [userID{u} '-Loss'];
+    else
+        Nr_temp{userN+ST+u} = [userID{u} '-loss'];
+    end
+    
+    % Return flow through potable demand sources
+    if ismember( user_type(u), [PMU, PIN, PAG] )
+        uz = Zones(u);
+        returnNode = find(Zones == uz & user_type == RTRN);
+        Nr_temp{userN+ST+returnNode} = [userID{returnNode} '-Loss'];
+        if source_type(s) == P
+            A_temp(returnNode,arc) = Return_Matrix(uz-1,uz-1);
+            A_temp(userN+ST+returnNode,arc) = -lossArray(user_type(u),source_type(s));
+        elseif source_type(s) == WTP
+            A_temp(returnNode,arc) = 0.98;
+        end
+    end
+    
+    % Storage variables
+    if ismember(s, storageSources)
+        stvar = numArcs + find(storageSources == s);
+        A_temp(s_on_u,stvar) = -1;
+        A_st_temp(s_on_u,stvar) = 1;
+        Nc_temp{stvar} = [sourceID{s} '-strg'];
+    end
+    
+    % Release variables
+    if ismember(s, releaseSources)
+        relvar = numArcs + length(storageSources) + find(releaseSources == s);
+        A_temp(s_on_u,relvar) = -1;
+        if source_type(s) == SW
+            Nc_temp{relvar} = [sourceID{s} '-DSflow'];
+        else
+            Nc_temp{relvar} = [sourceID{s} '-release'];
+        end
+    end
+end
+Nc_temp(end-userN+1:end) = Nr_temp(end-userN+1:end);
 
 % Indexing variables
 xb = userN;
@@ -508,7 +619,7 @@ A_lag = sparse(A_lag);
 
 % Number of columns in A = number of arcs + (number of -strg, -release, and
 % -DSflow variables) + number of loss variables (1 per user)
-assert( size(A,2) == numArcs + sum(S([GW,SW,WWTP,RCHRG])) + userN );
+assert( size(A,2) == numArcs + length(storageSources) + length(releaseSources) + userN );
 assert( size(A,2) == size(A_st,2) );
 assert( size(A,2) == size(A_lag,2) );
 
@@ -536,3 +647,15 @@ for xb = 1:length(Cuser)
         obj.variableNames(xb,1) = strcat(Csource(xb,1),{' -->> '},Cuser(xb,1));
     end
 end
+
+assert( isequal(A,A_temp) )
+assert( isequal(A_st,A_st_temp) )
+assert( isequal(A_lag,A_lag_temp) )
+assert( isequal(Nr, Nr_temp) )
+assert( isequal(Nc, Nc_temp) )
+
+A = sparse(A_temp);
+A_st = sparse(A_st);
+A_lag = sparse(A_lag);
+Nr = Nr_temp;
+Nc = Nc_temp;
