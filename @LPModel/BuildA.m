@@ -23,6 +23,7 @@ WTP  =  4; DMY  =  5; RCHRG =  6;
 P    =  7; NP   =  8; RTRN  =  9;
 PMU  = 10; NPMU = 11; PIN   = 12;
 NPIN = 13; PAG  = 14; NPAG  = 15;
+MAX = max([GW,WWTP,SW,WTP,DMY,RCHRG,P,NP,RTRN,PMU,NPMU,PIN,NPIN,PAG,NPAG]);
 
 %% Clear inputs file if connections have been altared
 
@@ -150,7 +151,7 @@ disp('Building Matrix...');
 lossWWTPSolid = 0.05;
 lossEvaporation = 0.03;
 lossPercent = 0.01;
-lossArray = -ones(NPAG,NPAG);
+lossArray = -ones(MAX,MAX);
 lossArray(WWTP,[WWTP,WTP]) = lossWWTPSolid;
 lossArray(RCHRG,[WWTP,SW]) = 0;
 lossArray(:,DMY) = 0;
