@@ -183,6 +183,7 @@ classdef LPModel < handle
     methods (Access=public)
         
         Q = ReadResults(obj,Q,InputFile,solutionFile)
+        PrintConstraint(obj,inConstraint,inPeriod)
         
 %         Read in data for the first stage
         function Setc( obj, inc )
