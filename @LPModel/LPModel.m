@@ -39,6 +39,9 @@ classdef LPModel < handle
     
 %     Leftover properties
     properties (Access=private)
+        Abase
+        A_st
+        A_lag
         Nr
         Nc
         Zones
@@ -144,9 +147,9 @@ classdef LPModel < handle
         function GenerateDataFromExcel( obj )
             cellConnectionsFile = strcat(obj.folderCellArray,'Connections.xlsx');
             cellInputFile = strcat(obj.folderCellArray,'Inputs.xlsx');
-            [Abase,A_st,A_lag,obj.Nr,obj.Nc,obj.Zones] ...
+            [obj.Abase,obj.A_st,obj.A_lag,obj.Nr,obj.Nc,obj.Zones] ...
                 = obj.BuildA(cellConnectionsFile{1}, cellInputFile{1});
-            A_full_temp = obj.ExpandA(Abase,A_st,A_lag);
+            A_full_temp = obj.ExpandA(obj.Abase,obj.A_st,obj.A_lag);
             switch obj.numStages
                 case 1
                     obj.SetA( A_full_temp );
