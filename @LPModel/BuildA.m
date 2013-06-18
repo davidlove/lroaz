@@ -174,6 +174,17 @@ assert(numArcs == sum(sum(Con==1)));
 
 % Arrange pressure zones
 
+userID = Name.user;
+user_type = userTyp;
+sortIndex = [];
+for ii=min(Zones):max(Zones)
+    sortIndex = [sortIndex; find(Zones==ii)];
+end
+Con_temp = Con(sortIndex,:);
+userID_temp = userID(sortIndex);
+user_type_temp = user_type(sortIndex);
+Zones_temp = Zones(sortIndex);
+
 xa = 0;
 xb = 0;
 xd = 0;
@@ -209,6 +220,16 @@ end
 Con = zuser; % resorted connection matrix
 Zones = user_zone;
 ret = ret(:,2:end);
+
+assert( isequal(Con, Con_temp) )
+assert( isequal(userID, userID_temp) )
+assert( isequal(user_type, user_type_temp) )
+assert( isequal(Zones, Zones_temp) )
+
+Con = Con_temp;
+userID = userID_temp;
+user_type = user_type_temp;
+Zones = Zones_temp;
 
 
 %% Check Return Matrix
