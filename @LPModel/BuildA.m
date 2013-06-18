@@ -295,6 +295,7 @@ A_temp((1:userN)+userN+ST,end-userN+1:end) = eye(userN);
 Nr_temp = cell(numConstraints,1);
 Nr_temp(1:userN) = userID;
 Nc_temp = cell(1,numVars);
+variableNames_temp = cell(numVars,1);
 [users, sources] = find(Con);
 for arc = 1:length(users)
     if arc == 51
@@ -314,7 +315,7 @@ for arc = 1:length(users)
     end
     
     Nc_temp{arc} = sourceID{s};
-%     obj.variableNames{arc} = [sourceID{s} '-->>' userID{u}];
+    variableNames_temp{arc} = [sourceID{s} ' -->> ' userID{u}];
     
     % Inflow to user node
     if user_type(u) ~= RCHRG
@@ -373,6 +374,7 @@ for arc = 1:length(users)
     end
 end
 Nc_temp(end-userN+1:end) = Nr_temp(end-userN+1:end);
+variableNames_temp(numArcs+1:end) = Nc_temp(numArcs+1:end)';
 
 % Indexing variables
 xb = userN;
@@ -694,9 +696,11 @@ assert( isequal(A_st,A_st_temp) )
 assert( isequal(A_lag,A_lag_temp) )
 assert( isequal(Nr, Nr_temp) )
 assert( isequal(Nc, Nc_temp) )
+assert( isequal(obj.variableNames,variableNames_temp) )
 
 A = sparse(A_temp);
 A_st = sparse(A_st);
 A_lag = sparse(A_lag);
 Nr = Nr_temp;
 Nc = Nc_temp;
+obj.variableNames = variableNames_temp;
