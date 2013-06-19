@@ -5,50 +5,53 @@ if nargin < 3
 end
 
 if ischar(inConstraint)
-    constraintName = inConstraint;
-    constraintRow = find(strcmp(constraintName,obj.Nr));
-elseif isnumeric(inConstraint)
-    constraintRow = inConstraint;
-    constraintName = obj.Nr{constraintRow};
-else
-    error('inConstraint must be constraint name or index')
+    inConstraint = {inConstraint};
 end
 
-disp(['Constraint for ' constraintName ' in time period t = ' num2str(inPeriod) ':'])
+for ic = inConstraint
+    if iscell(ic)
+        constraintName = ic{1};
+        constraintRow = find(strcmp(constraintName,obj.Nr));
+        if isempty(constraintRow)
+            error(['No constraint named "' constraintName '"'])
+        end
+    elseif isnumeric(ic)
+        constraintRow = ic;
+        constraintName = obj.Nr{constraintRow};
+    else
+        error('inConstraint must be constraint name or index')
+    end
+    
+    disp(['Constraint for ' constraintName ' in time period t = ' num2str(inPeriod) ':'])
+    
+    constraint = strcat( WriteConstraint( obj, obj.A_lag, constraintRow, inPeriod, obj.timeLag ), ...
+        WriteConstraint( obj, obj.A_st, constraintRow, inPeriod, 1 ), ...
+        WriteConstraint( obj, obj.Abase, constraintRow, inPeriod, 0) );
+    
+    btemp = reshape(obj.b,length(obj.Nr),obj.timePeriods);
+    constraint = sprintf( '%s%s%f', constraint, ...
+        ' = ', num2str(btemp(constraintRow,inPeriod)) );
+    
+    disp(constraint)
+    disp(' ')
+end
 
-constraint = '';
-
-if inPeriod >= obj.timeLag + 1 % To include A_lag
-    [~,c,v] = find(obj.A_lag(constraintRow,:));
+function outString = WriteConstraint( obj, inMatrix, inRow, inPeriod, inDelay )
+outString = '';
+if inPeriod >= inDelay + 1 % Tests whether delay is great enough
+    [~,c,v] = find(inMatrix(inRow,:));
     for ii=1:length(c)
-        constraint = strcat( constraint, ...
-            strsign(v(ii)), num2str(abs(v(ii))), ...
-            '[', obj.variableNames(c(ii)), ']', ...
-            '_[t-', num2str(obj.timeLag), ']' );
+        varName = obj.variableNames{c(ii)};
+        varName(ismember(varName,' ')) = [];
+        if inDelay == 0
+            delayString = 't';
+        else
+            delayString = strcat( 't-', num2str(inDelay) );
+        end
+        outString = strcat( outString, sprintf( '%s%i[%s](%s)', ...
+            strsign(v(ii)), abs(v(ii)), varName, delayString ) );
     end
 end
-
-if inPeriod >= 1 + 1 % To include A_st
-    [~,c,v] = find(obj.A_st(constraintRow,:));
-    for ii=1:length(c)
-        constraint = strcat( constraint, ...
-            strsign(v(ii)), num2str(abs(v(ii))), ...
-            '[', obj.variableNames(c(ii)), ']', '_[t-1]' );
-    end
-end
-
-[~,c,v] = find(obj.Abase(constraintRow,:));
-for ii=1:length(c)
-    constraint = strcat( constraint, ...
-        strsign(v(ii)), num2str(abs(v(ii))), ...
-        '[', obj.variableNames(c(ii)), ']', '_[t] ' );
-end
-
-btemp = reshape(obj.b,length(obj.Nr),obj.timePeriods);
-constraint = strcat( constraint, ...
-    ' = ', num2str(btemp(constraintRow,inPeriod)) );
-
-disp(constraint{1})
 
 
 function outSign = strsign(inNum)
