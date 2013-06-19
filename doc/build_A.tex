@@ -32,6 +32,7 @@
 
 % Commands for build_A.m variable names
 \newcommand{\connections}{\texttt{Connections.xlsx}}
+\newcommand{\inputs}{\texttt{Inputs.xlsx}}
 \newcommand{\buildA}{\texttt{build\_A.m}}
 \newcommand{\A}{\texttt{A}}
 \newcommand{\Ast}{\texttt{A\_st}}
@@ -295,5 +296,39 @@ For illustration purposes, the constraint matrix is constructed as follows for \
 \]
 That is, the sub-matrix \Alag is \texttt{timeLag} columns to the left of sub-matrix \A.
 Note that for \texttt{timeLag = 1} the matrices \Ast\ and \Alag\ will overlap, and thus are added together.
+
+\subsection{Loss Factors and Variables}
+\label{ssec:loss}
+
+Loss variables, in the $L$ sub-matrix of \A\ and \Alag, store the amount of water lost as the flow travels from the source to the user.
+Loss variables (and constraint rows) are named after the user nodes, with a suffix \texttt{-Loss} or \texttt{-loss} added, depending on whether the loss is the standard amount or not.
+The standard amount of loss is $1\%$, and is applied to all arcs by default.
+Exceptions are as follows:
+\begin{enumerate}
+	\item Arcs leaving dummy nodes are not subject to loss.
+	\item Arcs coming into a recharge facility from either a waste-water treatment plant or a surface water source are not subject to loss.
+	\begin{enumerate}
+		\item Note: these are the only types of arcs entering a recharge facility in my connections matrices.
+				Perhaps the code could be changed to have no loss for any arcs entering a recharge facility.
+	\end{enumerate}
+	\item Arcs coming into a waste-water treatment plant from either another waste-water treatment plant or a water treatment plant have a $5\%$ loss to solids.
+	\begin{enumerate}
+		\item Note: Return interceptors can also connect to waste-water treatment plants, and these arcs are subject to the standard loss.
+	\end{enumerate}
+	\item Arcs coming into recharge facilities from previous time periods have a $3\%$ loss due to evaporation.
+\end{enumerate}
+
+There is a potential instability in the code here.
+Loss variables are characterized as standard or not based on the user node.
+However, some users (WWTPs and potable/non-potable users) may have arcs of both standard and non-standard loss coming into them.
+This may make the classification of some loss variables arbitrary.
+This may not be a problem, but it should be kept in mind.
+
+\section{Inputs File \inputs}
+
+The second file, containing the cost vector, variable lower and upper bounds, and right hand side vector, is \inputs.
+The file is largely self-explanatory, but there is one important catch:
+\textbf{There is no consistency checking in the MATLAB code}.
+The variables and constraints must be specified in exactly the order that they are read in MATLAB, because the code does not compare the internal names of the variables with the names supplied in the spreadsheet.
 
 \end{document}
