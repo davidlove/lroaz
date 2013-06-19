@@ -41,18 +41,19 @@ for ic = inConstraint
         error('inConstraint must be constraint name or index')
     end
     
+    disp(' ')
     disp(['Constraint for ' constraintName ' in time period t = ' num2str(inPeriod) ':'])
     
     constraint = strcat( WriteConstraint( obj, obj.A_lag, constraintRow, inPeriod, obj.timeLag ), ...
         WriteConstraint( obj, obj.A_st, constraintRow, inPeriod, 1 ), ...
         WriteConstraint( obj, obj.Abase, constraintRow, inPeriod, 0) );
     
-    constraint = sprintf( '%s%s%f', constraint, ...
-        ' = ', rhs(constraintRow,inPeriod) );
+    constraint = sprintf( '%s = %f', constraint, ...
+        rhs(constraintRow,inPeriod) );
     
     disp(constraint)
-    disp(' ')
 end
+disp(' ')
 
 function outString = WriteConstraint( obj, inMatrix, inRow, inPeriod, inDelay )
 outString = '';
@@ -66,7 +67,7 @@ if inPeriod >= inDelay + 1 % Tests whether delay is great enough
         else
             delayString = strcat( 't-', num2str(inDelay) );
         end
-        outString = strcat( outString, sprintf( '%s%0.2f[%s](%s)', ...
+        outString = strcat( outString, sprintf( ' %s %0.2f[%s](%s)', ...
             strsign(v(ii)), abs(v(ii)), varName, delayString ) );
     end
 end
@@ -76,7 +77,7 @@ function outSign = strsign(inNum)
 
 switch sign(inNum)
     case {1,0}
-        outSign = ' + ';
+        outSign = '+';
     case -1
-        outSign = ' - ';
+        outSign = '-';
 end
