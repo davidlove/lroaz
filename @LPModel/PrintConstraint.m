@@ -25,6 +25,8 @@ if ischar(inConstraint)
     inConstraint = {inConstraint};
 end
 
+rhs = reshape(obj.b,length(obj.Nr),obj.timePeriods);
+
 for ic = inConstraint
     if iscell(ic)
         constraintName = ic{1};
@@ -45,9 +47,8 @@ for ic = inConstraint
         WriteConstraint( obj, obj.A_st, constraintRow, inPeriod, 1 ), ...
         WriteConstraint( obj, obj.Abase, constraintRow, inPeriod, 0) );
     
-    btemp = reshape(obj.b,length(obj.Nr),obj.timePeriods);
     constraint = sprintf( '%s%s%f', constraint, ...
-        ' = ', num2str(btemp(constraintRow,inPeriod)) );
+        ' = ', rhs(constraintRow,inPeriod) );
     
     disp(constraint)
     disp(' ')
