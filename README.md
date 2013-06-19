@@ -11,6 +11,8 @@ For the code to build an LP based on the excel spreadsheets, you want the *LPMod
 
 The file *OneStageAZ.m* shows you the basic use of the LPModel class.
 
+The *doc* folder contains some technical documentation on how LPModel constructs the water model.
+
 I currently have LPModel set to never write to Excel (it doesn't work on Linux).  To enable writing to excel, open @LPModel/LPModel.m, and set the variable writeToExcel = true.  This is line 52 as of the time I'm writing this.
 
 For reference, the files in LPModel:
