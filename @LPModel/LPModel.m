@@ -184,7 +184,6 @@ classdef LPModel < handle
         
         Q = ReadResults(obj,Q,InputFile,solutionFile)
         PrintConstraint(obj,inConstraint,varargin)
-        PrintConstraintFull(obj, inConstraint, inPeriod)
         
 %         Read in data for the first stage
         function Setc( obj, inc )
