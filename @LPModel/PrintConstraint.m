@@ -1,4 +1,4 @@
-function PrintConstraint(obj, inConstraint, inPeriod)
+function PrintConstraint(obj, inConstraint, varargin)
 
 % PrintConstraint prints the requested constraint(s) in a human readable
 % format.
@@ -16,9 +16,20 @@ function PrintConstraint(obj, inConstraint, inPeriod)
 % An optional numeric argument specifies the time period to print the
 % constraint.  If omitted, the earliest time period for which all lag and
 % storage variables appear is chosen.
+%
+% An optional string argument 'loss' may be given, which will expand the
+% loss variable and represent the losses as part of the constant on
+% incoming arcs.
 
-if nargin < 3
-    inPeriod = obj.timeLag + 1;
+inPeriod = obj.timeLag + 1;
+withLoss = false;
+
+for ii = 1:length(varargin)
+    if isnumeric(varargin{ii})
+        inPeriod = varargin{ii};
+    elseif ischar(varargin{ii}) && strcmpi(varargin{ii}, 'loss')
+        withLoss = true;
+    end
 end
 
 if ischar(inConstraint)
@@ -44,9 +55,9 @@ for ic = inConstraint
     disp(' ')
     disp(['Constraint for ' constraintName ' in time period t = ' num2str(inPeriod) ':'])
     
-    constraint = strcat( WriteConstraint( obj, obj.A_lag, constraintRow, inPeriod, obj.timeLag ), ...
-        WriteConstraint( obj, obj.A_st, constraintRow, inPeriod, 1 ), ...
-        WriteConstraint( obj, obj.Abase, constraintRow, inPeriod, 0) );
+    constraint = strcat( WriteConstraint( obj, obj.A_lag, constraintRow, inPeriod, obj.timeLag, withLoss ), ...
+        WriteConstraint( obj, obj.A_st, constraintRow, inPeriod, 1, withLoss ), ...
+        WriteConstraint( obj, obj.Abase, constraintRow, inPeriod, 0, withLoss ) );
     
     constraint = sprintf( '%s = %f', constraint, ...
         rhs(constraintRow,inPeriod) );
@@ -55,20 +66,36 @@ for ic = inConstraint
 end
 disp(' ')
 
-function outString = WriteConstraint( obj, inMatrix, inRow, inPeriod, inDelay )
+function outString = WriteConstraint( obj, inMatrix, inRow, inPeriod, inDelay, inLoss )
+numNodes = length(find(not(cellfun('isempty', strfind(obj.Nr, 'oss')))));
+numNodes = size(obj.Nr,1) - numNodes;
 outString = '';
 if inPeriod >= inDelay + 1 % Tests whether delay is great enough
     [~,c,v] = find(inMatrix(inRow,:));
     for ii=1:length(c)
         varName = obj.variableNames{c(ii)};
         varName(ismember(varName,' ')) = [];
+        if inLoss && inRow+numNodes <= size(inMatrix,1)
+            loss = full(inMatrix(inRow+numNodes,c(ii)));
+        else
+            loss = 0;
+        end
         if inDelay == 0
             delayString = 't';
         else
             delayString = strcat( 't-', num2str(inDelay) );
         end
-        outString = strcat( outString, sprintf( ' %s %0.2f[%s](%s)', ...
-            strsign(v(ii)), abs(v(ii)), varName, delayString ) );
+        if loss ~= 0
+            if v(ii) + loss ~= 0
+                outString = strcat( outString, sprintf( ' %s (%0.2f %s %0.2f)[%s](%s)', ...
+                    strsign(v(ii)), abs(v(ii)), ...
+                    strsign(v(ii)*loss), abs(loss), ...
+                    varName, delayString ) );
+            end
+        else
+            outString = strcat( outString, sprintf( ' %s %0.2f[%s](%s)', ...
+                strsign(v(ii)), abs(v(ii)), varName, delayString ) );
+        end
     end
 end
 

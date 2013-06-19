@@ -183,7 +183,7 @@ classdef LPModel < handle
     methods (Access=public)
         
         Q = ReadResults(obj,Q,InputFile,solutionFile)
-        PrintConstraint(obj,inConstraint,inPeriod)
+        PrintConstraint(obj,inConstraint,varargin)
         PrintConstraintFull(obj, inConstraint, inPeriod)
         
 %         Read in data for the first stage
