@@ -58,7 +58,7 @@ However, the structure differs from the standard adjacency matrix in the followi
 		I.e., if there is a 1 $i$th row and $j$th column, this indicates an arc from node $j$ to node $i$.
 	\item The rows (referred to as \emph{users}) and columns (referred to as \emph{sources}) contain \textbf{only a subset} of the total nodes in the system.
 	\begin{enumerate}
-		\item Consequently, the $i$th user (row) may refer to a different node than the $i$th source (column).
+		\item Consequently, the $i$th row may represent to a different node than the $i$th column.
 		\item Thus, every node must be identified by a unique name.
 		\begin{enumerate}
 			\item In the MATLAB code, this name must be a string.
@@ -89,7 +89,7 @@ As of this writing, the possibilities are:
 		Non-potable Interceptor/Booster	& \texttt{NP}		& 8 \\
 		Return Interceptor					& \texttt{RTRN}	& 9 \\
 		Potable Municipal User				& \texttt{PMU}		& 10 \\
-		Non-potable Municipal user			& \texttt{NPMU}	& 11 \\
+		Non-potable Municipal User			& \texttt{NPMU}	& 11 \\
 		Potable Industrial User				& \texttt{PIN}		& 12 \\
 		Non-potable Industrial User		& \texttt{NPIN}	& 13 \\
 		Potable Agricultural User			& \texttt{PAG}		& 14 \\
@@ -131,14 +131,17 @@ User types are given in column C.
 \subsection{Implied Outgoing Arcs of Potable Users}
 \label{ssec:potableusers}
 
-In a standard minimum cost flow problem like this, water enters the system at supply nodes and leaves the system at demand nodes.
+In a standard minimum cost flow problem, water enters the system at supply nodes and leaves the system at demand nodes.
 Non-potable demands in the water model behave in exactly this way.
 However, water satisfying potable demands is returned (after some loss) for treatment.
 Thus, we need to modify the standard formulation slightly to accommodate the fact that potable demand flows through the nodes.
 
 Figure \ref{fig:demand1} shows a simple setup where two facilities supply potable water to a potable demand source, which then returns waste-water to a return interceptor.
-Note: the arc to the return interceptor is implied, not stored explicitly in \connections, and is required to be the unique return interceptor in the same zone as the potable demand.
+The problem needs a constraint ensuring that the total flow going \emph{through} the demand node \texttt{DemP} meets the potable demand.
 Furthermore, we require that all water flowing into \texttt{DemP} be used to satisfy demand, i.e., the total flow into \texttt{DemP} exactly equals the demand.
+The code enforces these requirements by changing the system seen in Figure \ref{fig:demand2}.
+The flow variables going into \texttt{DemP} are copied (subtracting the loss) and used as inputs in \texttt{RTRN}.
+Now, flow from \texttt{P} and \texttt{IPR} satisfy demand at \texttt{DemP}, given in the right hand side vector.
 
 \begin{figure}[ht]
 	\centering
@@ -147,13 +150,9 @@ Furthermore, we require that all water flowing into \texttt{DemP} be used to sat
 		\node[draw] (IPR) at +(0,1) {\texttt{IPR}};
 		\node[draw,ellipse] (DemP) at +(2,1) {\texttt{DemP}};
 		\node[draw,circle] (Retrn) at +(4,2) {\texttt{RTRN}};
-% 		\node (BlankIPR) at +(6,1) {\texttt{IPR}};
-% 		\node (BlankP) at +(6,0) {\texttt{P}};
 		\draw[->] (P) -- (DemP);
 		\draw[->] (IPR) -- (DemP);
 		\draw[->] (DemP) -- (Retrn);
-	% 	\draw[->] (Blank1) -- (Retrn);
-	% 	\draw[->] (Blank2) -- (Retrn);
 	\end{tikzpicture}
 	\caption{
 		Schematic of two sources (\texttt{P} and \texttt{IPR}) supplying potable demand \texttt{DemP}, which return waste-water to \texttt{RTRN}.
@@ -163,12 +162,6 @@ Furthermore, we require that all water flowing into \texttt{DemP} be used to sat
 	\label{fig:demand1}
 \end{figure}
 
-The code modifies this situation as shown in Figure \ref{fig:demand2}.
-Now, flow from \texttt{P} and \texttt{IPR} satisfy demand at \texttt{DemP}, given in the right hand side vector.
-Copies of these flows are then connected to \texttt{RTRN}, along with associated losses, to generate the waste-water flow back to the processing facilities.
-
-The flows are copied without introducing extra variables by placing the connection to \texttt{RTRN} in the appropriate flow variable columns.
-
 \begin{figure}[ht]
 	\centering
 	\begin{tikzpicture}
@@ -176,8 +169,8 @@ The flows are copied without introducing extra variables by placing the connecti
 		\node[draw] (IPR) at +(0,1) {\texttt{IPR}};
 		\node[draw,ellipse] (DemP) at +(2,1) {\texttt{DemP}};
 		\node[draw,circle] (Retrn) at +(4,2) {\texttt{RTRN}};
-		\node (BlankIPR) at +(6,1) {Copy of \texttt{IPR}};
-		\node (BlankP) at +(6,0) {Copy of \texttt{P}};
+		\node (BlankIPR) at +(6,1) {Copy of $\texttt{IPR}\rightarrow\texttt{DemP}$};
+		\node (BlankP) at +(6,0) {Copy of $\texttt{P}\rightarrow\texttt{DemP}$};
 		\draw[->] (P) -- (DemP);
 		\draw[->] (IPR) -- (DemP);
 % 		\draw[->] (DemP) -- (Retrn);
@@ -190,18 +183,21 @@ The flows are copied without introducing extra variables by placing the connecti
 	\label{fig:demand2}
 \end{figure}
 
+Note: the arc to the return interceptor is implied, not stored explicitly in \connections, and is required to be the unique return interceptor in the same zone as the potable demand.
+
+
 \section{Building the constraint matrix}
 \label{sec:A}
 
 \subsection{Sub-matrices}
 \label{ssec:submatrices}
 
-The constraint matrix constructed by \buildA covers all time periods of the problem, and is composed of three sub-matrices: \A, \Ast, and \Alag.
+The constraint matrix constructed by \buildA\ covers all time periods of the problem, and is composed of three sub-matrices: \A, \Ast, and \Alag.
 Their basic functions are the following:
 \begin{itemize}
 	\item \A: Contains all variables in the current time period.
 	\item \Ast: Contains storage of currently usable water from previous time periods.
-	\item \Alag: Controls the time required for water in previous time periods to become available for use.
+	\item \Alag: Controls the time required for water sent for treatment in previous time periods to become available for use.
 \end{itemize}
 
 Each of the three matrices can be further decomposed into sub-matrices.
@@ -239,9 +235,9 @@ The submatrices have dimensions given in Table \ref{tb:submatrices}:
 The dimensions are:
 \begin{itemize}
 	\item \numUsers: Number of nodes listed as users.
-	\item \numArcs: Number of arcs defined in \connections (i.e., not including implied arcs).
-	\item \numStorage: Number of nodes (groundwater sources or recharge facilities) capable of storing water over time periods.
-	\item \numRelease: Number of nodes (surface water sources or waste-water treatment plants) that can release water into the environment.
+	\item \numArcs: Number of arcs defined in \connections\ (i.e., not including implied arcs).
+	\item \numStorage: Number of nodes (groundwater sources and recharge facilities) capable of storing water over time periods.
+	\item \numRelease: Number of nodes (surface water sources and waste-water treatment plants) that can release water into the environment.
 \end{itemize}
 
 The purpose of each sub-matrix can be determined by it's row and column.
@@ -255,13 +251,14 @@ The purposes of the rows:
 The purpose of the columns:
 \begin{itemize}
 	\item The first column is for flows along arcs.
-	\item The second column is for storage over time.
+	\item The second column is for storage decisions.
 	\item The third column is for releasing water back into the environment.
 	\item The final column connects the movement of water to its transport losses.
 \end{itemize}
 
 In sub-matrix \Ast, only the storage columns are nonzero.
 Likewise, in sub-matrix \Alag, only the arc columns are nonzero.
+In both \Ast\ and \Alag, the identity matrices are replaced with zeros.
 
 \subsection{Combining the sub-matrices for year-long time periods}
 \label{ssec:yearlag}
