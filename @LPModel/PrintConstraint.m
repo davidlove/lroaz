@@ -1,5 +1,22 @@
 function PrintConstraint(obj, inConstraint, inPeriod)
 
+% PrintConstraint prints the requested constraint(s) in a human readable
+% format.
+%
+% PrintConstraint can be called in several ways:
+% 1. obj.PrintConstraint( row ) prints the constraint by the specified row
+%    number
+% 2. obj.PrintConstraint( vector ) prints the constraints specified by each
+%    row number in the vector.
+% 3. obj.PrintConstraint( string ) prints the constraint for the node named
+%    in the input string
+% 4. obj.PrintConstraint( cellArray ) prints the constraints for each node
+%    named in the cell array of strings.
+%
+% An optional numeric argument specifies the time period to print the
+% constraint.  If omitted, the earliest time period for which all lag and
+% storage variables appear is chosen.
+
 if nargin < 3
     inPeriod = obj.timeLag + 1;
 end
