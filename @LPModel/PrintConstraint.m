@@ -66,7 +66,7 @@ if inPeriod >= inDelay + 1 % Tests whether delay is great enough
         else
             delayString = strcat( 't-', num2str(inDelay) );
         end
-        outString = strcat( outString, sprintf( '%s%i[%s](%s)', ...
+        outString = strcat( outString, sprintf( '%s%0.2f[%s](%s)', ...
             strsign(v(ii)), abs(v(ii)), varName, delayString ) );
     end
 end
