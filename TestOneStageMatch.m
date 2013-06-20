@@ -16,7 +16,9 @@ for ii=1:length(dirs)
     disp(['Checking folder: ' inputLocation])
     disp(' ')
     alicia = load([inputLocation,'orig_variables.mat']);
-    assert(nnz(lp.A ~= alicia.A_full) == 0)
+    % assertEqual does not work when comparing sparse (lp.A) with dense
+    % (alicia.A_full) matrices.
+    assert(isequal(lp.A,alicia.A_full))
     assertEqual(lp.b,alicia.b_vec)
     assertEqual(lp.c,alicia.Cost')
     assertEqual(lp.l,alicia.LB)
