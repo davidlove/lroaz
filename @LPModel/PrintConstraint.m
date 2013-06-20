@@ -36,7 +36,18 @@ if ischar(inConstraint)
     inConstraint = {inConstraint};
 end
 
+numUsers = length(find(not(cellfun('isempty', strfind(obj.Nr, 'oss')))));
 rhs = reshape(obj.b,length(obj.Nr),obj.timePeriods);
+
+% Method only works if identity matrices of opposite signs are at the end
+% of Abase, but zeros are at the end of A_st and A_lag
+assert( isequal(abs(obj.Abase(1:numUsers,end-numUsers+1:end)), eye(numUsers)) )
+assert( isequal(obj.Abase(1:numUsers,end-numUsers+1:end), ...
+               -obj.Abase(end-numUsers+1:end,end-numUsers+1:end)) )
+assert( isequal(obj.A_st(1:numUsers,end-numUsers+1:end),zeros(numUsers)) )
+assert( isequal(obj.A_st(end-numUsers+1:end,end-numUsers+1:end),zeros(numUsers)) )
+assert( isequal(obj.A_lag(1:numUsers,end-numUsers+1:end),zeros(numUsers)) )
+assert( isequal(obj.A_lag(end-numUsers+1:end,end-numUsers+1:end),zeros(numUsers)) )
 
 for ic = inConstraint
     if iscell(ic)
@@ -52,49 +63,65 @@ for ic = inConstraint
         error('inConstraint must be constraint name or index')
     end
     
+    if expandLoss && constraintRow <= numUsers
+        [lossRow,~] = find(obj.Abase(:,end-numUsers+constraintRow));
+        assert( lossRow(1) == constraintRow )
+        assert( length(lossRow) == 2 )
+        constraintRow = lossRow;
+    end
+    
     disp(' ')
     disp(['Constraint for ' constraintName ' in time period t = ' num2str(inPeriod) ':'])
     
-    constraint = strcat( WriteConstraint( obj, obj.A_lag, constraintRow, inPeriod, obj.timeLag, withLoss ), ...
-        WriteConstraint( obj, obj.A_st, constraintRow, inPeriod, 1, withLoss ), ...
-        WriteConstraint( obj, obj.Abase, constraintRow, inPeriod, 0, withLoss ) );
+    constraint = strcat( ...
+        WriteConstraint( obj, obj.A_lag, constraintRow, inPeriod, obj.timeLag ), ...
+        WriteConstraint( obj, obj.A_st,  constraintRow, inPeriod, 1 ), ...
+        WriteConstraint( obj, obj.Abase, constraintRow, inPeriod, 0 ) ...
+        );
     
     constraint = sprintf( '%s = %f', constraint, ...
-        rhs(constraintRow,inPeriod) );
+        sum(rhs(constraintRow,inPeriod)) );
     
     disp(constraint)
 end
 disp(' ')
 
-function outString = WriteConstraint( obj, inMatrix, inRow, inPeriod, inDelay, inLoss )
-numNodes = length(find(not(cellfun('isempty', strfind(obj.Nr, 'oss')))));
-numNodes = size(obj.Nr,1) - numNodes;
+function outString = WriteConstraint( obj, inMatrix, inRow, inPeriod, inDelay )
 outString = '';
 if inPeriod >= inDelay + 1 % Tests whether delay is great enough
-    [~,c,v] = find(inMatrix(inRow,:));
+    [~,c] = find(inMatrix(inRow,:));
+    c = unique(c);
     for ii=1:length(c)
+        % Get variable name, remove spaces for readability
         varName = obj.variableNames{c(ii)};
         varName(ismember(varName,' ')) = [];
-        if inLoss && inRow+numNodes <= size(inMatrix,1)
-            loss = full(inMatrix(inRow+numNodes,c(ii)));
+
+        % Get value from row and loss row, if applicable
+        v = full(inMatrix(inRow(1),c(ii)));
+        if length(inRow) == 2
+            loss = full(inMatrix(inRow(2),c(ii)));
         else
             loss = 0;
         end
+
+        % Set delay string
         if inDelay == 0
             delayString = 't';
         else
             delayString = strcat( 't-', num2str(inDelay) );
         end
+
+        % Concatenate variable output
         if loss ~= 0
-            if v(ii) + loss ~= 0
+            if v + loss ~= 0
                 outString = strcat( outString, sprintf( ' %s (%0.2f %s %0.2f)[%s](%s)', ...
-                    strsign(v(ii)), abs(v(ii)), ...
-                    strsign(v(ii)*loss), abs(loss), ...
+                    strsign(v), abs(v), ...
+                    strsign(v*loss), abs(loss), ...
                     varName, delayString ) );
             end
         else
             outString = strcat( outString, sprintf( ' %s %0.2f[%s](%s)', ...
-                strsign(v(ii)), abs(v(ii)), varName, delayString ) );
+                strsign(v), abs(v), varName, delayString ) );
         end
     end
 end
