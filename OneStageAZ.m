@@ -62,16 +62,17 @@ lp.PrintConstraint(1:3)
 
 % Or with a cell array of user names
 disp('-------------------------------------------------------------------')
-disp('Printing constraints for CAVSARP, CAP, and DemP_C')
-lp.PrintConstraint({'CAVSARP','CAP','DemP_C'})
+disp('Printing constraints for RRWRF, CAP, and DemP_C')
+lp.PrintConstraint({'RRWRF','CAP','DemP_C'})
 
 % An extra numeric argument allows you to specify a desired time period,
-% while an extra argument of the string 'loss' expands out the loss
-% variable.  These extra arguments can in either order  The (relative)
-% time period of each variable is shown in parentheses.  Variables from 
-% previous periods will be omitted when they don't exist.
+% while an extra argument of the string 'loss' prevents expanding the loss
+% variable.  These extra arguments can in either order, or you can specify
+% only one of them.  The (relative) time period of each variable is shown
+% in parentheses.  Variables from previous periods will be omitted when 
+% they don't exist.
 disp('-------------------------------------------------------------------')
-disp('Printing constraints other time periods with expanded loss variables')
+disp('Printing constraints other time periods without expanded loss variables')
 lp.PrintConstraint('SAVSARP', 1, 'loss')
 lp.PrintConstraint('DemP_C', 'loss', 15)
 

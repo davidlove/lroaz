@@ -17,18 +17,17 @@ function PrintConstraint(obj, inConstraint, varargin)
 % constraint.  If omitted, the earliest time period for which all lag and
 % storage variables appear is chosen.
 %
-% An optional string argument 'loss' may be given, which will expand the
-% loss variable and represent the losses as part of the constant on
-% incoming arcs.
+% An optional string argument 'loss' may be given, which will show the loss
+% variables explicitely, rather than expanding the loss variable.
 
 inPeriod = obj.timeLag + 1;
-withLoss = false;
+expandLoss = true;
 
 for ii = 1:length(varargin)
     if isnumeric(varargin{ii})
         inPeriod = varargin{ii};
     elseif ischar(varargin{ii}) && strcmpi(varargin{ii}, 'loss')
-        withLoss = true;
+        expandLoss = ~expandLoss;
     end
 end
 
