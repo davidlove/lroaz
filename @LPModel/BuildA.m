@@ -150,6 +150,7 @@ disp('Building Matrix...');
 
 lossWWTPSolid = 0.05;
 lossEvaporation = 0.03;
+lossRO = 0.25;
 lossPercent = 0.01;
 lossArray = -ones(MAX,MAX);
 lossArray(WWTP,[WWTP,WTP]) = lossWWTPSolid;
@@ -193,8 +194,8 @@ for arc = 1:length(users)
     
     % Loss along flows
     A(numUsers+ST+u,arc) = -lossArray(userType(u),source_type(s));
-    if strncmpi(sourceID(s),'RO',2) == 1 && strncmpi(userID(u),'DemNP',5) ~= 1
-        A(numUsers+ST+u,arc) = -.25;
+    if strncmpi(sourceID(s),'RO',2) == 1 && ~ismember(userType(u), [NPMU, NPIN, NPAG])
+        A(numUsers+ST+u,arc) = -lossRO;
     end
     if A(numUsers+ST+u,arc) == -lossPercent
         rowNames{numUsers+ST+u} = [userID{u} '-Loss'];

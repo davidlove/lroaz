@@ -316,6 +316,12 @@ Exceptions are as follows:
 		\item Note: Return interceptors can also connect to waste-water treatment plants, and these arcs are subject to the standard loss.
 	\end{enumerate}
 	\item Arcs coming into recharge facilities from previous time periods have a $3\%$ loss due to evaporation.
+	\item Arcs from sources whose name begins with \texttt{RO} (indicating reverse osmosis) and users that are not non-potable demands have $25\%$ loss during the reverse osmosis process.
+	\begin{enumerate}
+		\item This should probably be corrected by giving RO facilities their own type designation.
+			The easiest way to do this would be to make it type number 15.
+			Alternatively, the dummy node could be removed from \connections, and the MATLAB code changed to automatically add dummy arcs to any demand nodes.
+	\end{enumerate}
 \end{enumerate}
 
 There is a potential instability in the code here.
