@@ -44,7 +44,7 @@ origSecondStageValues = obj.candidateSolution.SecondStageValues;
 for ii=1:length(varPlot)
     solnVector(inVariableNumber) = varPlot(ii);
     plotSolution.Reset;
-    plotSolution.SetX( solnVector( 1:end-3 ) );
+    plotSolution.SetX( solnVector( 1:end-2-length(obj.THETA) ) );
     plotSolution.SetLambda( solnVector( obj.LAMBDA ) );
     plotSolution.SetMu( solnVector( obj.MU ) );
     plotSolution.SetTheta( solnVector( obj.THETA ), 'master' );
@@ -95,9 +95,12 @@ yl = ylim;
 % end
 hold on;
 
-for cc = 1:obj.NumObjectiveCuts()
-    obj.PlotObjectiveCut( inVariableNumber, cc, varPlot );
+if length(obj.THETA) == 1
+    for cc = 1:obj.NumObjectiveCuts()
+        obj.PlotObjectiveCut( inVariableNumber, cc, varPlot );
+    end
 end
+obj.PlotBoundFunction( inVariableNumber, varPlot )
 
 for cc=1:obj.NumFeasibilityCuts()
     obj.PlotFeasibilityCut( inVariableNumber, cc, yl );

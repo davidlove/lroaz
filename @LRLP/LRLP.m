@@ -72,19 +72,22 @@ classdef LRLP < handle
     methods
         % LRLP Constructor checks initialization conditions and generates
         % all immutable properties for the algorithm
-        function obj = LRLP( inLPModel, inGammaPrime, inNumObsPerScen, inOptimizer )
+        function obj = LRLP( inLPModel, inGammaPrime, inNumObsPerScen, inOptimizer, inCutType )
             if nargin < 1 || ~isa(inLPModel,'LPModel')
                 error('LRLP must be initialized with an LPModel as its first argument')
             end
             
             obj.lpModel = inLPModel;
             
-            if nargin < 4
-                inOptimizer = 'linprog';
-                if nargin < 3
-                    inNumObsPerScen = ones(1,obj.lpModel.numScenarios);
-                    if nargin < 2
-                        inGammaPrime = 0.5;
+            if nargin < 5
+                inCutType = 'multi';
+                if nargin < 4
+                    inOptimizer = 'linprog';
+                    if nargin < 3
+                        inNumObsPerScen = ones(1,obj.lpModel.numScenarios);
+                        if nargin < 2
+                            inGammaPrime = 0.5;
+                        end
                     end
                 end
             end
@@ -119,7 +122,15 @@ classdef LRLP < handle
             
             obj.LAMBDA = size( obj.lpModel.A, 2 ) + 1;
             obj.MU = obj.LAMBDA + 1;
-            obj.THETA = obj.MU + 1;
+            switch inCutType
+                case 'single'
+                    thetaOffset = 1;
+                case 'multi'
+                    thetaOffset = 1:obj.lpModel.numScenarios;
+                otherwise
+                    error([inCutType ' is not an allowable cut type'])
+            end
+            obj.THETA = obj.MU + thetaOffset;
             
             obj.SLOPE = 1;
             obj.INTERCEPT = 2;
@@ -128,7 +139,7 @@ classdef LRLP < handle
             obj.SCALE_UP = 1;
             obj.SCALE_DOWN = 2;
             
-            obj.candidateSolution = Solution( obj.lpModel, 'single' );
+            obj.candidateSolution = Solution( obj.lpModel, inCutType );
             obj.InitializeBenders();
             
             obj.trustRegionMinSize = obj.trustRegionSize / 10;
@@ -252,7 +263,12 @@ classdef LRLP < handle
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
 
-            obj.candidateSolution.SetX( currentCandidate(1:end-3) )
+            if ~isempty(currentCandidate)
+                % Do nothing -- LP solver returned a solution
+            else
+                currentCandidate = currentBest;
+            end
+            obj.candidateSolution.SetX( currentCandidate(1:end-2-length(obj.THETA)) )
             obj.candidateSolution.SetLambda( currentCandidate(obj.LAMBDA) )
             obj.candidateSolution.SetMu( currentCandidate(obj.MU) )
             obj.candidateSolution.SetTheta( currentCandidate(obj.THETA), 'master' )
@@ -283,7 +299,7 @@ classdef LRLP < handle
                 + (1+obj.trustRegionRatio)*obj.trustRegionLower) ...
                 / 2;
             
-            ind = 1:obj.THETA-1;
+            ind = 1:obj.THETA(1)-1;
             
             assert( all( upperT(ind) - lowerT(ind) ...
                 - obj.trustRegionRatio*( obj.trustRegionUpper(ind) - obj.trustRegionLower(ind) ) ...
@@ -466,8 +482,8 @@ classdef LRLP < handle
         % DeleteOldestCut deletes the oldest objective cut from the matrix
         % and right hand side vector
         function DeleteOldestCut( obj )
-            obj.objectiveCutsMatrix = obj.objectiveCutsMatrix(2:end,:);
-            obj.objectiveCutsRHS = obj.objectiveCutsRHS(2:end);
+            obj.objectiveCutsMatrix = obj.objectiveCutsMatrix(length(obj.THETA)+1:end,:);
+            obj.objectiveCutsRHS = obj.objectiveCutsRHS(length(obj.THETA)+1:end);
             assert( ~isempty(obj.objectiveCutsRHS) )
         end
         
@@ -483,7 +499,8 @@ classdef LRLP < handle
         
         PlotStep( obj, inVariableNumber );
         PlotFeasibilityCut( obj, inVariableNumber, inCutNumber, ylim );
-        PlotObjectiveCut( obj, inVariableNumber, inCutNumber, inBounds )
+        PlotObjectiveCut( obj, inVariableNumber, inCutNumber, inBounds );
+        PlotBoundFunction( obj, inVariableNumber, inBounds );
         
         % SubProblem solves an individual subproblem, updating the optimal
         % value and dual solution to the sub problem
@@ -541,10 +558,18 @@ classdef LRLP < handle
                     -obj.numObsTotal*lambdaLocal/(muLocal-localValues(ii))];
             end
             
-            slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
+            switch length(obj.THETA)
+                case 1
+                    slope = obj.numObsPerScen/obj.numObsTotal*intermediateSlope;
+                case obj.lpModel.numScenarios
+                    slope = intermediateSlope;
+                otherwise
+                    error('Wrong length of obj.THETA.  This should never happen')
+            end
             intercept = obj.candidateSolution.ThetaTrue - slope*[xLocal;lambdaLocal;muLocal];
             
-            obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; sparse([slope, -1])];
+            obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; ...
+                                       sparse([slope, -eye(length(obj.THETA))])];
             obj.objectiveCutsRHS = [obj.objectiveCutsRHS; -intercept];
         end
         
@@ -553,7 +578,7 @@ classdef LRLP < handle
         function GenerateFeasibilityCut( obj )
             [~,hIndex] = max( obj.candidateSolution.SecondStageValues );
             
-            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), 0, -1, 0];
+            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), 0, -1, zeros(1,length(obj.THETA))];
             feasInt = obj.candidateSolution.SecondStageIntercept(hIndex);
             
             obj.feasibilityCutsMatrix = [obj.feasibilityCutsMatrix; sparse(feasSlope)];
@@ -605,10 +630,19 @@ classdef LRLP < handle
             lambdaLocal = inSolution.Lambda;
             muLocal = inSolution.Mu;
             
-            inSolution.SetTheta( obj.numObsPerScen/obj.numObsTotal ...
-                * ( obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
-                - obj.numObsTotal*lambdaLocal*log(muLocal-inSolution.SecondStageValues) ), ...
-                'true' );
+            rawTheta = obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
+                - obj.numObsTotal*lambdaLocal*log(muLocal-inSolution.SecondStageValues);
+            
+            switch length(obj.THETA)
+                case 1
+                    inSolution.SetTheta( obj.numObsPerScen/obj.numObsTotal ...
+                        * rawTheta, ...
+                        'true' );
+                case obj.lpModel.numScenarios
+                    inSolution.SetTheta( rawTheta, 'true' );
+                otherwise
+                    error('Wrong size of obj.THETA.  This should not happen')
+            end
         end
         
         % CalculateRho calculates the value of trustRegionRho
@@ -690,12 +724,19 @@ classdef LRLP < handle
             cOut = [obj.lpModel.c, 0, 0, 0] * obj.objectiveScale;
             cOut(obj.LAMBDA) = obj.nBar;
             cOut(obj.MU) = 1;
-            cOut(obj.THETA) = 1;
+            switch length(obj.THETA)
+                case 1
+                    cOut(obj.THETA) = 1;
+                case obj.lpModel.numScenarios
+                    cOut(obj.THETA) = obj.numObsPerScen / obj.numObsTotal;
+                otherwise
+                    error('Wrong length of obj.THETA.  This should never happen')
+            end
         end
         
         % GetMasterA gets the constraint matrix for the master problem
         function AOut = GetMasterA( obj )
-            AOut = [obj.lpModel.A, zeros( size(obj.lpModel.A,1), 3 )];
+            AOut = [obj.lpModel.A, zeros( size(obj.lpModel.A,1), 2+length(obj.THETA) )];
         end
         
         % GetMasterb gets the right hand side vector for the master problem

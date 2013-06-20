@@ -29,7 +29,7 @@ iiSet = 1:length(gp);
 
 for ii = iiSet
     timeStart = tic;
-    [solvedLRLP,c1,n1] = SolveLRLP( lpModel, gp(ii), obs );
+    [solvedLRLP,c1,n1] = SolveLRLP( lpModel, gp(ii), obs, 'multi' );
     timeIndiv = toc(timeStart);
     
     p1 = solvedLRLP.pWorst;
