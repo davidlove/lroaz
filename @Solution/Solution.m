@@ -22,6 +22,7 @@ classdef Solution < matlab.mixin.Copyable
         numVariables
         numScen
         numTheta
+        phiLimit
     end
     
     % Enumeration properties
@@ -34,12 +35,15 @@ classdef Solution < matlab.mixin.Copyable
     
     methods (Access=public)
         
-        function obj = Solution( lp, cutType )
-            if nargin < 2
+        function obj = Solution( lp, phi, cutType )
+            if nargin < 3
                 cutType = 'single';
             end
             if ~isa( lp, 'LPModel' )
                 error('Solution must be initialized with an LPModel');
+            end
+            if ~isa( phi, 'PhiDivergence' )
+                error('Solution must be initialized with a PhiDivergence');
             end
             
             obj.MASTER = 1;
@@ -50,6 +54,7 @@ classdef Solution < matlab.mixin.Copyable
             
             obj.numVariables = size(lp.A,2);            
             obj.numScen = lp.numScenarios;
+            obj.phiLimit = phi.limit;
             
             switch cutType
                 case 'single'
@@ -123,7 +128,7 @@ classdef Solution < matlab.mixin.Copyable
             end
             self.secondStageValues(inScen) = inValue;
             if all(self.secondStageValues > -Inf)
-                self.muFeasible = all(self.mu > self.secondStageValues);
+                self.muFeasible = all(self.S() <= self.phiLimit);
             end
         end
         
@@ -199,6 +204,14 @@ classdef Solution < matlab.mixin.Copyable
         
         function outT = ThetaTrue( self )
             outT = self.theta( :,self.TRUE );
+        end
+        
+        function outS = S( self )
+            outS = (self.secondStageValues - self.mu) / self.lambda;
+        end
+        
+        function outL = Limit( self )
+            outL = self.phiLimit;
         end
         
         function outValues = SecondStageValues( self )
