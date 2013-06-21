@@ -51,6 +51,7 @@ classdef PhiDivergence
                     error('PhiDivergence:PhiDivergence:Unknown', ...
                         ['Unknown phi type ' inDivergence])
             end
+            obj.divergence = inDivergence;
         end
         
         function outVal = Conjugate( obj, inS )

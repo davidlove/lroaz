@@ -18,6 +18,7 @@ if isfinite(phi.limit)
     assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
     assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
 end
+assertEqual( phi.divergence, 'lro' )
 
 % Burg Entropy:
 %  conjugate  = -log(1-s)
@@ -32,6 +33,7 @@ if isfinite(phi.limit)
     assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
     assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
 end
+assertEqual( phi.divergence, 'burg' )
 
 % Kullback-Leibler:
 %  conjugate  = exp(s) - 1
@@ -46,6 +48,7 @@ if isfinite(phi.limit)
     assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
     assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
 end
+assertEqual( phi.divergence, 'kl' )
 
 % Chi^2:
 %  conjugate  = 2 - 2sqrt(1-s)
@@ -60,6 +63,7 @@ if isfinite(phi.limit)
     assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
     assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
 end
+assertEqual( phi.divergence, 'chi2' )
 
 % Modified Chi^2:
 %  conjugate  = max{-1, s+s^2/4}
@@ -74,6 +78,7 @@ if isfinite(phi.limit)
     assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
     assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
 end
+assertEqual( phi.divergence, 'mchi2' )
 
 % Hellinger Distance:
 %  conjugate  = s/(1-s)
@@ -88,6 +93,7 @@ if isfinite(phi.limit)
     assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
     assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
 end
+assertEqual( phi.divergence, 'hellinger' )
 
 % Test error for unknown phi
 assertExceptionThrown( @() PhiDivergence( 'fakey-super-made-up' ), ...
