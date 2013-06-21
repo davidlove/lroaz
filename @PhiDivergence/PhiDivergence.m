@@ -58,18 +58,14 @@ classdef PhiDivergence
             % Conjugate returns the value of the conjugate at the specified
             % value of s.
             outVal = obj.conjugate(inS);
-            if inS > obj.limit
-                outVal = Inf;
-            end
+            outVal( inS > obj.limit ) = Inf;
         end
         
         function outDeriv = ConjugateDerivative( obj, inS )
             % ConjugateDerivative returns the derivative of the conjugate
             % at the specified value of s.
             outDeriv = obj.conjugateDerivative(inS);
-            if inS > obj.limit
-                outDeriv = NaN;
-            end
+            outDeriv( inS > obj.limit ) = NaN;
         end
         
         function outDeriv = SecondDerivativeAt1( obj )

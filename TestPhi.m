@@ -15,8 +15,10 @@ s = 1./vals;
 assertElementsAlmostEqual( phi.ConjugateDerivative(s), -vals, 'relative', 1e-6 )
 assertElementsAlmostEqual( phi.SecondDerivativeAt1, 1, 'relative', 1e-6 )
 if isfinite(phi.limit)
-    assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
-    assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
+    slim = phi.limit + dlimit*[-1,1];
+    testLimits = phi.Conjugate(slim);
+    assertTrue( isreal(testLimits(1)) )
+    assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'lro' )
 
@@ -30,8 +32,10 @@ s = 1 + 1./vals;
 assertElementsAlmostEqual( phi.ConjugateDerivative(s), -vals, 'relative', 1e-6 )
 assertElementsAlmostEqual( phi.SecondDerivativeAt1, 1, 'relative', 1e-6 )
 if isfinite(phi.limit)
-    assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
-    assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
+    slim = phi.limit + dlimit*[-1,1];
+    testLimits = phi.Conjugate(slim);
+    assertTrue( isreal(testLimits(1)) )
+    assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'burg' )
 
@@ -45,8 +49,10 @@ s = log(-vals);
 assertElementsAlmostEqual( phi.ConjugateDerivative(s), -vals, 'relative', 1e-6 )
 assertElementsAlmostEqual( phi.SecondDerivativeAt1, 1, 'relative', 1e-6 )
 if isfinite(phi.limit)
-    assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
-    assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
+    slim = phi.limit + dlimit*[-1,1];
+    testLimits = phi.Conjugate(slim);
+    assertTrue( isreal(testLimits(1)) )
+    assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'kl' )
 
@@ -60,8 +66,10 @@ s = 1 - 1./(vals.^2);
 assertElementsAlmostEqual( phi.ConjugateDerivative(s), -vals, 'relative', 1e-6 )
 assertElementsAlmostEqual( phi.SecondDerivativeAt1, 2, 'relative', 1e-6 )
 if isfinite(phi.limit)
-    assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
-    assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
+    slim = phi.limit + dlimit*[-1,1];
+    testLimits = phi.Conjugate(slim);
+    assertTrue( isreal(testLimits(1)) )
+    assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'chi2' )
 
@@ -75,8 +83,10 @@ s = 2*(-vals-1);
 assertElementsAlmostEqual( phi.ConjugateDerivative(s), -vals, 'relative', 1e-6 )
 assertElementsAlmostEqual( phi.SecondDerivativeAt1, 2, 'relative', 1e-6 )
 if isfinite(phi.limit)
-    assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
-    assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
+    slim = phi.limit + dlimit*[-1,1];
+    testLimits = phi.Conjugate(slim);
+    assertTrue( isreal(testLimits(1)) )
+    assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'mchi2' )
 
@@ -90,8 +100,10 @@ s = 1 - 1./sqrt(-vals);
 assertElementsAlmostEqual( phi.ConjugateDerivative(s), -vals, 'relative', 1e-6 )
 assertElementsAlmostEqual( phi.SecondDerivativeAt1, 1/2, 'relative', 1e-6 )
 if isfinite(phi.limit)
-    assertTrue( isfinite(phi.Conjugate(phi.limit-dlimit)) )
-    assertTrue( isinf(phi.Conjugate(phi.limit+dlimit)) )
+    slim = phi.limit + dlimit*[-1,1];
+    testLimits = phi.Conjugate(slim);
+    assertTrue( isreal(testLimits(1)) )
+    assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'hellinger' )
 
