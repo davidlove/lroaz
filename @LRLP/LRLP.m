@@ -194,8 +194,6 @@ classdef LRLP < handle
             end
             
             obj.objectiveScale = 1;
-%             obj.objectiveScale = obj.nBar ...
-%                 / median(obj.lpModel.c(obj.lpModel.c ~= 0));
             
             obj.trustRegionSize = 1*max(abs(x0));
             
@@ -385,8 +383,6 @@ classdef LRLP < handle
         % UpdateTolerances updates the upper bound on the optimal value and
         % the objective and probability tolerances
         function UpdateTolerances( obj )
-            % obj.CalculateProbability();
-            
             if obj.zLower > -Inf
                 obj.currentObjectiveTolerance = (obj.zUpper - obj.zLower) ...
                     / min(abs(obj.zUpper),abs(obj.zLower));
@@ -591,7 +587,7 @@ classdef LRLP < handle
             lambdaLocal = obj.candidateSolution.Lambda;
             
             localValues = obj.candidateSolution.SecondStageValues;
-            [hMax hIndex] = max( localValues );
+            [hMax,hIndex] = max( localValues );
             mu = obj.lpModel.numScenarios/2 ...
                 * obj.numObsPerScen(hIndex)*lambdaLocal() ...
                 + hMax;
