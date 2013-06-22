@@ -31,7 +31,7 @@ classdef PhiDivergence
                     obj.phi2Derivative = @(t) 1./(t.^2);
                     obj.limit = 1;
                 case 'kl'
-                    obj.func = @(t) t*log(t) - t + 1;
+                    obj.func = @(t) t.*log(t) - t + 1;
                     obj.conjugate = @(s) exp(s) - 1;
                     obj.conjugateDerivative = @(s) exp(s);
                     obj.phi2Derivative = @(t) 1./t;
