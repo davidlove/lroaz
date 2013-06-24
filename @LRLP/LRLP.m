@@ -89,7 +89,7 @@ classdef LRLP < handle
             
             obj.numObsPerScen = inNumObsPerScen;
             obj.numObsTotal = sum(obj.numObsPerScen);
-            if nargin < 4
+            if nargin < 4  || inRho < 0
                 phi2deriv = obj.phi.SecondDerivativeAt1();
                 if isfinite(phi2deriv) && phi2deriv > 0
                     inRho = phi2deriv / (2*obj.numObsTotal) * ...
