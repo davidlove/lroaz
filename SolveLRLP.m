@@ -1,5 +1,5 @@
 function [lrlp, outTotalCuts, outTotalProbs] = ...
-    SolveLRLP( simpleLP, gp, obs, cutType, isGraphical )
+    SolveLRLP( simpleLP, phi, obs, rho, cutType, isGraphical )
 
 if nargin < 5
     isGraphical = false;
@@ -23,7 +23,7 @@ else
     disp(' ')
 end
 
-lrlp = LRLP( simpleLP, gp, obs, opt, cutType );
+lrlp = LRLP( simpleLP, phi, obs, rho, opt, cutType );
 
 totalProblemsSolved = 1;
 totalCutsMade = 1;
