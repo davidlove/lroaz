@@ -1,6 +1,12 @@
 function Test( obj )
 %TEST Run tests on LRLP class
 
+% Ensure that SolveMasterProblem runs -- at one point, phi divergences with
+% infinite limit would not initialize Mu correctly and not deal with the
+% feasibility matrix correctly.
+% NOTE: SolveMasterProblem must be called BEFORE I start changing values of
+% x, lambda, and mu.
+obj.SolveMasterProblem
 
 % lp parameters
 n = obj.lpModel.numScenarios;
