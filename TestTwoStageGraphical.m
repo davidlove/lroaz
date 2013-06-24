@@ -1,15 +1,11 @@
 function TestTwoStageGraphical
 
 simpleLP = InitializeSimpleTwoStageLP();
+phi = PhiDivergence('lro');
 origLP = simpleLP;
 assert( isequal( simpleLP, origLP ) )
 
-% gp = 0.5;
-problemCases = [0.81, 46   7  46  32; ...
-                0.89,  7  20  47  46; ...
-                0.63,  2  46  41  38; ...
-                0.50, 35  28  22  33];
-% obs = ceil(50*rand(1,4));
+problemCases = [];
 
 numKnownProblems = size(problemCases,1);
 numNewProblems = 10;
@@ -22,14 +18,14 @@ ptols = cuts;
 
 for ii = 1:numProblems
     if ii <= numKnownProblems
-        gp = problemCases(ii,1);
+        rho = problemCases(ii,1);
         obs = problemCases(ii,2:end);
     else
-        gp = roundn( rand(), -2 );
         obs = ceil(50*rand(1,4));
+        rho = -1;
     end
     
-    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( simpleLP, gp, obs, 'multi', false );
+    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( simpleLP, phi, obs, rho, 'multi', false );
     
     tols(ii) = solvedLRLP.currentObjectiveTolerance;
     ptols(ii) = solvedLRLP.currentProbabilityTolerance;
