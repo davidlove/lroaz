@@ -23,9 +23,10 @@ for ii=1:length(dirs)
     assertEqual(lp.c,alicia.Cost')
     assertEqual(lp.l,alicia.LB)
     assertEqual(lp.u,alicia.UB)
-    assertEqual(Q,alicia.Q)
-    assertEqual(fval,alicia.fval)
-    assertEqual(lp.Final,alicia.Final)
+    % Absolute tolerance because answers are rounded to nearest 1e-2
+    assertElementsAlmostEqual(Q,alicia.Q,'absolute',1.1e-2)
+    assertElementsAlmostEqual(fval,alicia.fval,'relative',1e-6)
+    assertElementsAlmostEqual(lp.Final,alicia.Final,'relative',1e-6)
     
     disp(['Folder ' inputLocation ' passed tests'])
     disp(' ')
