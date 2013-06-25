@@ -35,9 +35,15 @@ for ii = 1:numProblems
     clear solvedLRLP    
 end
 
-disp([cuts,probs;...
-      max(cuts),max(probs)])
-  format short e
-disp([tols,ptols;...
-      max(tols),max(ptols)])
+disp('   ------------------------')
+disp('    Cuts  Problems')
+disp([cuts,probs])
+disp('    Maximums')
+disp([max(cuts),max(probs)])
+format short e
+disp('   ------------------------')
+disp('   Objective    Probability')
+disp([tols,ptols])
+disp('   Maximums')
+disp([max(tols),max(ptols)])
 end
