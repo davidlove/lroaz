@@ -1,9 +1,9 @@
 function [lrlp, outTotalCuts, outTotalProbs] = ...
     SolveLRLP( simpleLP, phi, obs, rho, cutType, isGraphical )
 
-if nargin < 5
+if nargin < 6
     isGraphical = false;
-    if nargin < 4
+    if nargin < 5
         cutType = 'multi';
     end
 end
