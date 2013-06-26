@@ -44,7 +44,7 @@ classdef PhiDivergence
                     obj.limit = 1;
                 case 'mchi2'
                     obj.func = @(t) (t-1).^2;
-                    obj.conjugate = @(s) max(-1, s + s.^2/4);
+                    obj.conjugate = @(s) (-1).*(s < -2) + (s+s.^2/4).*(s >= -2);
                     obj.conjugateDerivative = @(s) (1+s/2).*(s >= -2);
                     obj.phi2Derivative = @(t) 2;
                     obj.limit = Inf;

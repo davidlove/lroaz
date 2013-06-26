@@ -77,7 +77,7 @@ end
 assertEqual( phi.divergence, 'chi2' )
 
 % Modified Chi^2:
-%  conjugate  = max{-1, s+s^2/4}
+%  conjugate  = -1 for s < -2,  s+s^2/4 for s >= -2
 %  conjugate' = 0(s < -2) or 1 + s/2 (s >= -2)
 phi = PhiDivergence( 'mchi2' );
 assertEqual( phi.Value(1), 0 )
@@ -86,6 +86,8 @@ assertElementsAlmostEqual( phi.Conjugate(s), vals, 'relative', 1e-6 )
 s = 2*(-vals-1);
 assertElementsAlmostEqual( phi.ConjugateDerivative(s), -vals, 'relative', 1e-6 )
 assertElementsAlmostEqual( phi.SecondDerivativeAt1, 2, 'relative', 1e-6 )
+s = -2.1:-3.03:-40;
+assertEqual( phi.Conjugate(s), -ones(size(s)) )
 if isfinite(phi.limit)
     slim = phi.limit + dlimit*[-1,1];
     testLimits = phi.Conjugate(slim);
