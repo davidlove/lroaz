@@ -70,13 +70,13 @@ sortIndex = [find(Con(1,:) == GW), find(Con(1,:) == WWTP), ...
     find(Con(1,:) == P), find(Con(1,:) == NP), ...
     find(Con(1,:) == RTRN)];
 assert( length(sortIndex) == size(Con,2), 'Source list contains demand nodes' )
-source_type = Con(1,sortIndex);
+sourceType = Con(1,sortIndex);
 Con = Con(2:end,sortIndex);
 sourceID = sourceID(sortIndex);
 
-waterSources = find(source_type == GW | source_type == SW);
-storageSources = find(source_type == GW | source_type == RCHRG);
-releaseSources = find(source_type == SW | source_type == WWTP);
+waterSources = find(sourceType == GW | sourceType == SW);
+storageSources = find(sourceType == GW | sourceType == RCHRG);
+releaseSources = find(sourceType == SW | sourceType == WWTP);
 ST = length(waterSources);
 
 % Check that the number of arcs hasn't changed
@@ -169,7 +169,7 @@ for arc = 1:length(users)
         if ismember(s, waterSources)
             s_on_u = numUsers + find(waterSources == s);
             rowNames{s_on_u} = sourceID{s};
-        elseif source_type(s) == DMY
+        elseif sourceType(s) == DMY
             % Do nothing, no source for dummy nodes
         end
     elseif length(s_on_u) > 1
@@ -193,7 +193,7 @@ for arc = 1:length(users)
     end
     
     % Loss along flows
-    A(numUsers+ST+u,arc) = -lossArray(userType(u),source_type(s));
+    A(numUsers+ST+u,arc) = -lossArray(userType(u),sourceType(s));
     if strncmpi(sourceID(s),'RO',2) == 1 && ~ismember(userType(u), [NPMU, NPIN, NPAG])
         A(numUsers+ST+u,arc) = -lossRO;
     end
@@ -208,10 +208,10 @@ for arc = 1:length(users)
         uz = userZone(u);
         returnNode = find(userZone == uz & userType == RTRN);
         rowNames{numUsers+ST+returnNode} = [userID{returnNode} '-Loss'];
-        if source_type(s) == P
+        if sourceType(s) == P
             A(returnNode,arc) = Return_Matrix(uz-1,uz-1);
-            A(numUsers+ST+returnNode,arc) = -lossArray(userType(u),source_type(s));
-        elseif source_type(s) == WTP
+            A(numUsers+ST+returnNode,arc) = -lossArray(userType(u),sourceType(s));
+        elseif sourceType(s) == WTP
             A(returnNode,arc) = 0.98;
         end
     end
@@ -228,7 +228,7 @@ for arc = 1:length(users)
     if ismember(s, releaseSources)
         relvar = numArcs + length(storageSources) + find(releaseSources == s);
         A(s_on_u,relvar) = -1;
-        if source_type(s) == SW
+        if sourceType(s) == SW
             colNames{relvar} = [sourceID{s} '-DSflow'];
         else
             colNames{relvar} = [sourceID{s} '-release'];
