@@ -21,10 +21,10 @@ phi = PhiDivergence('lro');
 
 obs = 1*[1 1 1 1];
 
-% dgp = 0.01;
-% gp = dgp:dgp:1-dgp;
-rho = 10.^linspace(-3,0,100);
-rho(end) = mean(rho(end-1:end));
+alpha = 10.^linspace(-2.93,0,50);
+alpha(end) = mean(alpha(end-1:end));
+rho = phi.SecondDerivativeAt1() / (2*sum(obs)) * ...
+    chi2inv(1-alpha,lpModel.numScenarios - 1);
 
 iiSet = 1:length(rho);
 
@@ -69,7 +69,7 @@ for ii = iiSet
     
     save(saveFileName,'rho','pWorst','x','lambda','mu', ...
         'scenCosts','objVals', ...
-        'calcRho', ...
+        'calcRho', 'alpha', ...
         'numProbs','numCuts','timeRuns');
 %         'exitFlags')
 
