@@ -128,7 +128,10 @@ classdef Solution < matlab.mixin.Copyable
             end
             self.secondStageValues(inScen) = inValue;
             if all(self.secondStageValues > -Inf)
-                self.muFeasible = all(self.S() <= self.phiLimit);
+                % NOTE: Strict inequality is required for most phi
+                % divergences, but variationdistance allows for
+                % <= phiLimit.
+                self.muFeasible = all(self.S() < self.phiLimit);
             end
         end
         
