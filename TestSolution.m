@@ -102,7 +102,7 @@ s.SetTrustRegionInterior( false )
 
 % Assign second stage costs and duals, this time with Mu feasible
 for scen=1:lp.numScenarios
-    s.SetSecondStageValue( scen, s.Mu + scen );
+    s.SetSecondStageValue( scen, s.Mu + scen - 1 );
     s.SetSecondStageDual( scen, s.Mu - scen*2, 'slope' );
     s.SetSecondStageDual( scen, s.Mu - scen/3, 'int' );
 end
