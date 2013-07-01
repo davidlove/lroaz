@@ -625,6 +625,9 @@ classdef LRLP < handle
             
             rawTheta = lambdaLocal * obj.phi.Conjugate(inSolution.S());
             
+            assert( all(isreal(rawTheta)), 'Possible scaling error' )
+            assert( all(isfinite(rawTheta)), 'Possible scaling error' )
+            
             switch length(obj.THETA)
                 case 1
                     inSolution.SetTheta( obj.numObsPerScen/obj.numObsTotal ...
