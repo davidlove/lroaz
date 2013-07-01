@@ -26,7 +26,7 @@ assertEqual( phi.divergence, 'lro' )
 %  conjugate  = -log(1-s)
 %  conjugate' = 1/(1-s)
 phi = PhiDivergence( 'burg' );
-assertEqual( phi.Value(1), 0 )
+assertEqual( phi.Contribution(1,1), 0 )
 s = 1 - exp(-vals);
 assertElementsAlmostEqual( phi.Conjugate(s), vals, 'relative', 1e-6 )
 s = 1 + 1./vals;
@@ -44,7 +44,7 @@ assertEqual( phi.divergence, 'burg' )
 %  conjugate  = exp(s) - 1
 %  conjugate' = exp(s)
 phi = PhiDivergence( 'kl' );
-assertEqual( phi.Value(1), 0 )
+assertEqual( phi.Contribution(1,1), 0 )
 s = log(1+vals);
 assertElementsAlmostEqual( phi.Conjugate(s), vals, 'relative', 1e-6 )
 s = log(-vals);
@@ -62,7 +62,7 @@ assertEqual( phi.divergence, 'kl' )
 %  conjugate  = 2 - 2sqrt(1-s)
 %  conjugate' = 1/sqrt(1-s)
 phi = PhiDivergence( 'chi2' );
-assertEqual( phi.Value(1), 0 )
+assertEqual( phi.Contribution(1,1), 0 )
 s = 1 - ((2-vals)/2).^2;
 assertElementsAlmostEqual( phi.Conjugate(s), vals, 'relative', 1e-6 )
 s = 1 - 1./(vals.^2);
@@ -80,7 +80,7 @@ assertEqual( phi.divergence, 'chi2' )
 %  conjugate  = -1 for s < -2,  s+s^2/4 for s >= -2
 %  conjugate' = 0(s < -2) or 1 + s/2 (s >= -2)
 phi = PhiDivergence( 'mchi2' );
-assertEqual( phi.Value(1), 0 )
+assertEqual( phi.Contribution(1,1), 0 )
 s = -2 + 2*sqrt(1+vals);
 assertElementsAlmostEqual( phi.Conjugate(s), vals, 'relative', 1e-6 )
 s = 2*(-vals-1);
@@ -100,7 +100,7 @@ assertEqual( phi.divergence, 'mchi2' )
 %  conjugate  = s/(1-s)
 %  conjugate' = 1/(s-1)^2
 phi = PhiDivergence( 'hellinger' );
-assertEqual( phi.Value(1), 0 )
+assertEqual( phi.Contribution(1,1), 0 )
 s = vals./(1+vals);
 assertElementsAlmostEqual( phi.Conjugate(s), vals, 'relative', 1e-6 )
 s = 1 - 1./sqrt(-vals);

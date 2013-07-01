@@ -697,7 +697,7 @@ classdef LRLP < handle
         function CalculateProbability( obj )
             q = obj.numObsPerScen / obj.numObsTotal;
             obj.pWorst = q .* obj.phi.ConjugateDerivative( obj.bestSolution.S' );
-            obj.calculatedDivergence = sum( q.*obj.phi.Value(obj.pWorst./q) );
+            obj.calculatedDivergence = sum( obj.phi.Contribution(obj.pWorst, q) );
         end
         
         % ResetSecondStageSolutions clears the second stage solution values

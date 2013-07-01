@@ -61,8 +61,12 @@ classdef PhiDivergence
             obj.divergence = inDivergence;
         end
         
-        function outVal = Value( obj, inT )
-            outVal = obj.func(inT);
+        function outVal = Contribution( obj, inNumer, inDenom )
+            zD = inDenom == 0;
+            zN = zD & (inNumer == 0);
+            outVal = inDenom.*obj.func(inNumer./inDenom);
+            outVal(zD) = inNumer(zD) * obj.limit;
+            outVal(zN) = 0;
         end
         
         function outVal = Conjugate( obj, inS )
