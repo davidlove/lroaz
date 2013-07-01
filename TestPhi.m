@@ -5,6 +5,9 @@ dv = 0.01;
 vals = (-1+dv):dv:(0-dv);
 dlimit = 1e-6;
 
+rho = 3.2;
+q = 1:5;
+
 % LRO:
 %  conjugate  = -log(-s)-1
 %  conjugate' = -1/s
@@ -56,6 +59,9 @@ if isfinite(phi.limit)
     assertTrue( isreal(testLimits(1)) )
     assertTrue( isinf(testLimits(2)) )
 end
+phi.SetComputationLimit(q,rho)
+assertElementsAlmostEqual( rho, min(q)/sum(q)*...
+    phi.Contribution(phi.ConjugateDerivative(phi.computationLimit),1) )
 assertEqual( phi.divergence, 'kl' )
 
 % Chi^2:
@@ -94,6 +100,9 @@ if isfinite(phi.limit)
     assertTrue( isreal(testLimits(1)) )
     assertTrue( isinf(testLimits(2)) )
 end
+phi.SetComputationLimit(q,rho)
+assertElementsAlmostEqual( rho, min(q)/sum(q)*...
+    phi.Contribution(phi.ConjugateDerivative(phi.computationLimit),1) )
 assertEqual( phi.divergence, 'mchi2' )
 
 % Hellinger Distance:

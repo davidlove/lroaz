@@ -1,4 +1,4 @@
-classdef PhiDivergence
+classdef PhiDivergence < handle
     %PhiDivergence defines a phi-divergence for use in robust optimization
     %   Detailed explanation goes here
     
@@ -12,6 +12,10 @@ classdef PhiDivergence
         conjugate
         conjugateDerivative
         phi2Derivative
+    end
+    
+    properties (GetAccess=public, SetAccess=private)
+        computationLimit
     end
     
     methods
@@ -59,6 +63,7 @@ classdef PhiDivergence
                         ['Unknown phi type ' inDivergence])
             end
             obj.divergence = inDivergence;
+            obj.computationLimit = Inf;
         end
         
         function outVal = Contribution( obj, inNumer, inDenom )
@@ -87,6 +92,17 @@ classdef PhiDivergence
             % SecondDerivative returns the second derivative of the
             % phi-divergence at the specified value of t.
             outDeriv = obj.phi2Derivative(1);
+        end
+        
+        function SetComputationLimit( obj, inDistr, inRho )
+            assert( all(inDistr >= 0) )
+            if ~isinf( obj.limit )
+                return
+            end
+            distr = inDistr/sum(inDistr);
+            t = fsolve(@(t)obj.func(t) - inRho/min(distr(distr>0)), 2);
+            s = fsolve(@(s)obj.conjugateDerivative(s) - t, 1);
+            obj.computationLimit = s;
         end
     end
 end
