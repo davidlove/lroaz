@@ -210,6 +210,16 @@ classdef LRLP < handle
             obj.candidateSolution.SetMu( 0 );
             
             obj.SolveSubProblems();
+            
+            % Objective Value Scaling
+            obj.objectiveScale = 10^-(floor(log10(max(obj.candidateSolution.SecondStageValues))-1));
+            obj.candidateSolution.Reset();
+            obj.candidateSolution.SetX( x0 );
+            obj.candidateSolution.SetLambda( 1 );
+            obj.candidateSolution.SetMu( 0 );
+            obj.SolveSubProblems();
+            % End objective value scaling
+            
             obj.GenerateCuts();
             
             obj.UpdateBestSolution();

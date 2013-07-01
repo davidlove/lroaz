@@ -8,6 +8,9 @@ function Test( obj )
 % x, lambda, and mu.
 obj.SolveMasterProblem
 
+% Turn off objective scaling to run tests below
+obj.objectiveScale = 1;
+
 % lp parameters
 n = obj.lpModel.numScenarios;
 
