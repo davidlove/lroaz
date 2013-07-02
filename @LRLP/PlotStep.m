@@ -72,30 +72,17 @@ for ii=1:length(varPlot)
     else
         yPlot(ii) = 0+1i;
     end
-    
-%     yplot(ii) = get_obj(xplot(ii),lambda0,mu0,cMaster,numscen,N,Nbar);
 end
-% Return LRLP to original status before the plot step
-% obj.SolveSubProblems();
-% obj.candidateMuIsFeasible = origCMIF;
-% obj.FindExpectedSecondStage();
+% assert( ~all(yPlot == 1i), 'Infeasible solutions through range of plot' )
 
 figure( inVariableNumber )
 plot(varPlot(imag(yPlot)==0),yPlot(imag(yPlot)==0), ...
     varPlot(imag(yPlot)~=0),abs(imag(yPlot(imag(yPlot)~=0))),'b.', 'LineWidth',2)
 
 yl = ylim;
-% if obj.zLower > -Inf
-%     yl(1) = (obj.zLower-0.1*yl(2))/(1-0.1);
+if ~all(yPlot == 1i)
     yl(1) = (cMaster*obj.GetDecisions(obj.candidateSolution)-0.1*yl(2))/(1-0.1);
-% end
-% if zupper < Inf && zlower > -Inf
-%     a = 0.85;
-%     b = 0.075;
-%     zhigh = max(zupper,zlower);
-%     zlow = min(zupper,zlower);
-%     yl = [zhigh + (a-1)*(zhigh-zlow)/b, zhigh + a*(zhigh-zlow)/b];
-% end
+end
 hold on;
 
 if length(obj.THETA) == 1
