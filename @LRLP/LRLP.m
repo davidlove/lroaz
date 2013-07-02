@@ -115,6 +115,8 @@ classdef LRLP < handle
             end
             
             obj.rho = inRho;
+            obj.phi.SetComputationLimit( obj.numObsPerScen, obj.rho );
+            
             obj.optimizer = inOptimizer;
             
             obj.objectiveTolerance = 1e-5;
@@ -591,8 +593,9 @@ classdef LRLP < handle
         % the matrix
         function GenerateFeasibilityCut( obj )
             [~,hIndex] = max( obj.candidateSolution.SecondStageValues );
+            limit = min( obj.phi.limit, obj.phi.computationLimit );
             
-            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), -obj.phi.limit, -1, zeros(1,length(obj.THETA))];
+            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), -limit, -1, zeros(1,length(obj.THETA))];
             feasInt = obj.candidateSolution.SecondStageIntercept(hIndex);
             
             obj.feasibilityCutsMatrix = [obj.feasibilityCutsMatrix; sparse(feasSlope)];
@@ -604,7 +607,7 @@ classdef LRLP < handle
         function FindFeasibleMu( obj )
             q = obj.numObsPerScen / obj.numObsTotal;
             lambdaLocal = obj.candidateSolution.Lambda;
-            limit = obj.phi.limit;
+            limit = min( obj.phi.limit, obj.phi.computationLimit );
             
             localValues = obj.candidateSolution.SecondStageValues;
             mu = max(localValues) - limit*lambdaLocal + 1;

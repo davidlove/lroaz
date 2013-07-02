@@ -54,7 +54,7 @@ classdef Solution < matlab.mixin.Copyable
             
             obj.numVariables = size(lp.A,2);            
             obj.numScen = lp.numScenarios;
-            obj.phiLimit = phi.limit;
+            obj.phiLimit = min( phi.limit, phi.computationLimit );
             
             switch cutType
                 case 'single'
