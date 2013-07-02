@@ -1,7 +1,10 @@
-function GatherLROData( saveFileName )
+function GatherLROData( phiType, saveFileName )
 
-if nargin < 1
+if nargin < 2
     saveFileName = 'saved_variables.mat';
+    if nargin < 1
+        phiType = 'kl';
+    end
 end
 
 % lpModel = InitializeSimpleTwoStageLP();
@@ -17,7 +20,7 @@ timeLag = 1;
 firstStageYears = 5;
 
 lpModel = LPModel( waterFolders, years, timeLag, firstStageYears );
-phi = PhiDivergence('lro');
+phi = PhiDivergence( phiType );
 
 obs = 1*[1 1 1 1];
 
