@@ -610,7 +610,7 @@ classdef LRLP < handle
             limit = min( obj.phi.limit, obj.phi.computationLimit );
             
             localValues = obj.candidateSolution.SecondStageValues;
-            mu = max(localValues) - limit*lambdaLocal + 1;
+            mu = max(localValues) - limit*(1-1e-6)*lambdaLocal;
             
             mu = fsolve( @(mu) q * ...
                 obj.phi.ConjugateDerivative((localValues - mu)/lambdaLocal) - 1, ...
