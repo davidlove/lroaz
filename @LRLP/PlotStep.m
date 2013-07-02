@@ -14,11 +14,13 @@ numPlottedPoints = 41;
 switch inVariableNumber
     case obj.LAMBDA
         varPlot = linspace(0,max(0.2,2*lambda0),numPlottedPoints);
+        var = '\lambda';
     case obj.MU
 %         varPlot = linspace(0,max(10,2*mu0),numPlottedPoints);
         varPlot = linspace( lMaster(inVariableNumber)-1, ...
             uMaster(inVariableNumber)+1, ...
             numPlottedPoints );
+        var = '\mu';
     case obj.THETA
         error('Do not plot with theta')
     otherwise
@@ -30,6 +32,7 @@ switch inVariableNumber
         varPlot = linspace( max( lMaster(inVariableNumber)-1, lb ), ...
             min( uMaster(inVariableNumber)+1, ub ), ...
             numPlottedPoints );
+        var = ['x[' num2str(inVariableNumber) ']'];
 end
 
 yPlot = zeros(size(varPlot));
@@ -119,7 +122,7 @@ plot(obj.trustRegionLower(inVariableNumber)*[1,1], yl, 'k--', ...
 
 xlim(varPlot([1,end]))
 ylim(yl)
-xlabel('Decision Variable x', 'FontSize',14)
+xlabel(['Decision Variable ' var], 'FontSize',14)
 ylabel('Objective Function & Cuts', 'FontSize',14)
 title(['\lambda = ' num2str(lambda0) ', \mu = ' num2str(mu0)], 'FontSize',14)
 
