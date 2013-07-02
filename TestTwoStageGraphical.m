@@ -1,15 +1,16 @@
 function TestTwoStageGraphical
 
 simpleLP = InitializeSimpleTwoStageLP();
-phi = PhiDivergence('lro');
+phiTypes = {'burg','kl','chi2','mchi2'};
+% phi = PhiDivergence('mchi2');
 origLP = simpleLP;
 assert( isequal( simpleLP, origLP ) )
 
-problemCases = [];
+problemCases = {'mchi2', [-1, 27, 39, 47, 7]}; % mchi2, poorly scaled lp
 
 numKnownProblems = size(problemCases,1);
-numNewProblems = 10;
-numProblems = numKnownProblems + numNewProblems;
+numNewProblems = 2;
+numProblems = numKnownProblems + numNewProblems*length(phiTypes);
 
 cuts = zeros(numProblems,1);
 probs = cuts;
@@ -18,9 +19,13 @@ ptols = cuts;
 
 for ii = 1:numProblems
     if ii <= numKnownProblems
-        rho = problemCases(ii,1);
-        obs = problemCases(ii,2:end);
+        phi = PhiDivergence(problemCases{ii,1});
+        details = problemCases{ii,2};
+        rho = details(ii,1);
+        obs = details(ii,2:end);
     else
+        type = phiTypes{ceil((ii-numKnownProblems)/numProblems*length(phiTypes))};
+        phi = PhiDivergence( type );
         obs = ceil(50*rand(1,4));
         rho = -1;
     end

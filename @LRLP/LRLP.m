@@ -413,7 +413,7 @@ classdef LRLP < handle
         
         function WriteProgress( obj )
             disp(' ')
-            disp(['rho = ' num2str(obj.rho)])
+            disp([obj.phi.divergence ', rho = ' num2str(obj.rho)])
             disp(['Observations: ' num2str(obj.numObsPerScen)])
             disp([num2str(obj.NumObjectiveCuts) ' objective cuts, '...
                 num2str(obj.NumFeasibilityCuts) ' feasibility cuts.'])
