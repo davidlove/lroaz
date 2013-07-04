@@ -573,6 +573,7 @@ classdef LRLP < handle
                     conjVals(ii) - conjDerivs(ii)*s(ii), ...
                     -conjDerivs(ii)];
             end
+            intermediateSlope(obj.numObsPerScen==0,:) = zeros(sum(obj.numObsPerScen==0), size(obj.lpModel.A,2)+2);
             
             switch length(obj.THETA)
                 case 1
@@ -637,9 +638,10 @@ classdef LRLP < handle
             lambdaLocal = inSolution.Lambda;
             
             rawTheta = lambdaLocal * obj.phi.Conjugate(inSolution.S());
+            rawTheta(obj.numObsPerScen==0) = 0;
             
             assert( all(isreal(rawTheta)), 'Possible scaling error' )
-            assert( all(isfinite(rawTheta)), 'Possible scaling error' )
+            assert( all(isfinite(rawTheta)), ['Nonfinite theta, lambda = ' num2str(lambdaLocal)])
             
             switch length(obj.THETA)
                 case 1
@@ -712,7 +714,13 @@ classdef LRLP < handle
         % the current best solution
         function CalculateProbability( obj )
             q = obj.numObsPerScen / obj.numObsTotal;
-            obj.pWorst = q .* obj.phi.ConjugateDerivative( obj.bestSolution.S' );
+            s = obj.bestSolution.S';
+            obj.pWorst = q .* obj.phi.ConjugateDerivative( s );
+            obj.pWorst(q==0) = 0;
+            limitCases = abs(s - obj.phi.limit) <= 1e-6;
+            if nnz(limitCases) > 0
+                obj.pWorst(limitCases) = (1-sum(obj.pWorst))/nnz(limitCases);
+            end
             obj.calculatedDivergence = sum( obj.phi.Contribution(obj.pWorst, q) );
         end
         

@@ -131,7 +131,7 @@ classdef Solution < matlab.mixin.Copyable
                 % NOTE: Strict inequality is required for most phi
                 % divergences, but variationdistance allows for
                 % <= phiLimit.
-                self.muFeasible = all(self.S() < self.phiLimit);
+                self.muFeasible = all(self.S() <= (1 + 1e-6)*self.phiLimit);
             end
         end
         
