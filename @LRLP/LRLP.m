@@ -623,16 +623,16 @@ classdef LRLP < handle
         % FindFeasibleMu uses Newton's Method to find a feasible value of
         % mu
         function FindFeasibleMu( obj )
-            q = obj.numObsPerScen / obj.numObsTotal;
+%             q = obj.numObsPerScen / obj.numObsTotal;
             lambdaLocal = obj.candidateSolution.Lambda;
             limit = min( obj.phi.limit, obj.phi.computationLimit );
             
             localValues = obj.candidateSolution.SecondStageValues;
-            mu = max(localValues) - limit*(1-1e-6)*lambdaLocal;
+            mu = max(localValues) - limit*(1-1e-3)*lambdaLocal;
             
-            mu = fsolve( @(mu) q * ...
-                obj.phi.ConjugateDerivative((localValues - mu)/lambdaLocal) - 1, ...
-                mu );
+%             mu = fsolve( @(mu) q * ...
+%                 obj.phi.ConjugateDerivative((localValues - mu)/lambdaLocal) - 1, ...
+%                 mu );
             
             obj.candidateSolution.SetMu( mu );
         end
