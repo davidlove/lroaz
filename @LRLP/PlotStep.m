@@ -13,7 +13,7 @@ uMaster = obj.GetMasteru();
 numPlottedPoints = 41;
 switch inVariableNumber
     case obj.LAMBDA
-        varPlot = linspace(0,max(0.2,2*lambda0),numPlottedPoints);
+        varPlot = linspace(lambda0/2,max(0.2,2*lambda0),numPlottedPoints);
         var = '\lambda';
     case obj.MU
 %         varPlot = linspace(0,max(10,2*mu0),numPlottedPoints);
