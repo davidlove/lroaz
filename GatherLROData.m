@@ -24,6 +24,10 @@ phi = PhiDivergence( phiType );
 
 obs = 1*[1 1 1 1];
 
+if isinf(phi.limit) && any(obs == 0)
+    error(['Phi divergence ' phi.divergence ' does not allow poping up probabilities'])
+end
+
 alpha = 10.^linspace(-2.93,0,50);
 alpha(end) = mean(alpha(end-1:end));
 rho = phi.SecondDerivativeAt1() / (2*sum(obs)) * ...
