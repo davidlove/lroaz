@@ -11,7 +11,8 @@ simpleLP.Setc(3.24e6);
 % simpleLP.Setc(1);
 
 % Second stage costs
-simpleLP.Setq( 3.59e7 * ones(1,4), 1 );
+% simpleLP.Setq( 3.59e7 * ones(1,4), 1 );
+simpleLP.Setq( 3.09e7 * ones(1,4), 1 );
 simpleLP.Setq( 3.53e7 * ones(1,4), 2 );
 simpleLP.Setq( 2.22e7 * ones(1,4), 3 );
 simpleLP.Setq( 2.19e7 * ones(1,4), 4 );
