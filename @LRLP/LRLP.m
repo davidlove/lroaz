@@ -499,13 +499,17 @@ classdef LRLP < handle
         function DeleteOldestCut( obj )
             obj.objectiveCutsMatrix = obj.objectiveCutsMatrix(length(obj.THETA)+1:end,:);
             obj.objectiveCutsRHS = obj.objectiveCutsRHS(length(obj.THETA)+1:end);
-            assert( ~isempty(obj.objectiveCutsRHS) )
+%             No reason to not allow cuts to be completely deleted, but
+%             will have to monitor for infinite loops.
+%             assert( ~isempty(obj.objectiveCutsRHS) )
         end
         
         function DeleteOldestFeasibilityCut( obj )
             obj.feasibilityCutsMatrix = obj.feasibilityCutsMatrix(2:end,:);
             obj.feasibilityCutsRHS = obj.feasibilityCutsRHS(2:end);
-            assert( ~isempty(obj.feasibilityCutsRHS) )
+%             No reason to not allow cuts to be completely deleted, but
+%             will have to monitor for infinite loops.
+%             assert( ~isempty(obj.feasibilityCutsRHS) )
         end
         
     end

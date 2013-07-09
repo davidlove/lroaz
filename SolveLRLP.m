@@ -53,9 +53,9 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
                 error( ['Unknown error code: ' num2str(exitFlag)] )
         end
         lrlp.DeleteOldestCut;
-        if lrlp.NumFeasibilityCuts > 1
+%         if lrlp.NumFeasibilityCuts > 1
             lrlp.DeleteOldestFeasibilityCut;
-        end
+%         end
         disp([num2str(lrlp.NumObjectiveCuts) ' Objective Cuts Remaining, ' ...
             num2str(lrlp.NumFeasibilityCuts) ' Feasibility Cuts Remaining.'])
         continue
