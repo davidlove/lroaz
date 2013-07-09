@@ -13,12 +13,14 @@ uMaster = obj.GetMasteru();
 numPlottedPoints = 41;
 switch inVariableNumber
     case obj.LAMBDA
-        varPlot = linspace(0,max(0.2,2*lambda0),numPlottedPoints);
+        varPlot = linspace(lambda0/2,max(0.2,2*lambda0),numPlottedPoints);
+        var = '\lambda';
     case obj.MU
 %         varPlot = linspace(0,max(10,2*mu0),numPlottedPoints);
         varPlot = linspace( lMaster(inVariableNumber)-1, ...
             uMaster(inVariableNumber)+1, ...
             numPlottedPoints );
+        var = '\mu';
     case obj.THETA
         error('Do not plot with theta')
     otherwise
@@ -30,6 +32,7 @@ switch inVariableNumber
         varPlot = linspace( max( lMaster(inVariableNumber)-1, lb ), ...
             min( uMaster(inVariableNumber)+1, ub ), ...
             numPlottedPoints );
+        var = ['x[' num2str(inVariableNumber) ']'];
 end
 
 yPlot = zeros(size(varPlot));
@@ -69,30 +72,17 @@ for ii=1:length(varPlot)
     else
         yPlot(ii) = 0+1i;
     end
-    
-%     yplot(ii) = get_obj(xplot(ii),lambda0,mu0,cMaster,numscen,N,Nbar);
 end
-% Return LRLP to original status before the plot step
-% obj.SolveSubProblems();
-% obj.candidateMuIsFeasible = origCMIF;
-% obj.FindExpectedSecondStage();
+% assert( ~all(yPlot == 1i), 'Infeasible solutions through range of plot' )
 
 figure( inVariableNumber )
 plot(varPlot(imag(yPlot)==0),yPlot(imag(yPlot)==0), ...
     varPlot(imag(yPlot)~=0),abs(imag(yPlot(imag(yPlot)~=0))),'b.', 'LineWidth',2)
 
 yl = ylim;
-% if obj.zLower > -Inf
-%     yl(1) = (obj.zLower-0.1*yl(2))/(1-0.1);
+if ~all(yPlot == 1i)
     yl(1) = (cMaster*obj.GetDecisions(obj.candidateSolution)-0.1*yl(2))/(1-0.1);
-% end
-% if zupper < Inf && zlower > -Inf
-%     a = 0.85;
-%     b = 0.075;
-%     zhigh = max(zupper,zlower);
-%     zlow = min(zupper,zlower);
-%     yl = [zhigh + (a-1)*(zhigh-zlow)/b, zhigh + a*(zhigh-zlow)/b];
-% end
+end
 hold on;
 
 if length(obj.THETA) == 1
@@ -119,7 +109,7 @@ plot(obj.trustRegionLower(inVariableNumber)*[1,1], yl, 'k--', ...
 
 xlim(varPlot([1,end]))
 ylim(yl)
-xlabel('Decision Variable x', 'FontSize',14)
+xlabel(['Decision Variable ' var], 'FontSize',14)
 ylabel('Objective Function & Cuts', 'FontSize',14)
 title(['\lambda = ' num2str(lambda0) ', \mu = ' num2str(mu0)], 'FontSize',14)
 

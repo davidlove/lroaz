@@ -7,18 +7,19 @@ simpleLP.Setb(0);
 simpleLP.SetA(0);
 simpleLP.Setl(-1);
 simpleLP.Setu(1);
-% simpleLP.Setc(3.24e6);
-simpleLP.Setc(1);
+simpleLP.Setc(3.24e6);
+% simpleLP.Setc(1);
 
 % Second stage costs
 % simpleLP.Setq( 3.59e7 * ones(1,4), 1 );
-% simpleLP.Setq( 3.53e7 * ones(1,4), 2 );
-% simpleLP.Setq( 2.22e7 * ones(1,4), 3 );
-% simpleLP.Setq( 2.19e7 * ones(1,4), 4 );
-simpleLP.Setq( ones(1,4), 1 );
-simpleLP.Setq( ones(1,4), 2 );
-simpleLP.Setq( ones(1,4), 3 );
-simpleLP.Setq( ones(1,4), 4 );
+simpleLP.Setq( 3.09e7 * ones(1,4), 1 );
+simpleLP.Setq( 3.53e7 * ones(1,4), 2 );
+simpleLP.Setq( 2.22e7 * ones(1,4), 3 );
+simpleLP.Setq( 2.19e7 * ones(1,4), 4 );
+% simpleLP.Setq( ones(1,4), 1 );
+% simpleLP.Setq( ones(1,4), 2 );
+% simpleLP.Setq( ones(1,4), 3 );
+% simpleLP.Setq( ones(1,4), 4 );
 
 % Second stage constant RHS
 simpleLP.Setd( [2;0]  , 1 );

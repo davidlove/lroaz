@@ -154,7 +154,7 @@ classdef LPModel < handle
                 case 1
                     obj.SetA( A_full_temp );
                 case 2
-                    [rows,cols] = size(Abase);
+                    [rows,cols] = size(obj.Abase);
                     obj.SetA( A_full_temp(1:obj.firstStagePeriods*rows,1:obj.firstStagePeriods*cols) );
                     for omega = 1:obj.numScenarios
                         obj.SetD(A_full_temp(obj.firstStagePeriods*rows+1:end,obj.firstStagePeriods*cols+1:end),omega);

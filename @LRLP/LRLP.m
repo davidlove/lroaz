@@ -7,10 +7,10 @@ classdef LRLP < handle
     %     Problem Parameters
     properties (GetAccess=public, SetAccess=immutable)
         lpModel
-        gammaPrime
+        phi
+        rho
         numObsPerScen
         numObsTotal
-        nBar
         optimizer
         objectiveTolerance
         probabilityTolerance
@@ -59,7 +59,7 @@ classdef LRLP < handle
         currentObjectiveTolerance
         currentProbabilityTolerance
         pWorst
-        relativeLikelihood
+        calculatedDivergence
     end
     
     %     Boolean parameters for the algorithm
@@ -72,23 +72,38 @@ classdef LRLP < handle
     methods
         % LRLP Constructor checks initialization conditions and generates
         % all immutable properties for the algorithm
-        function obj = LRLP( inLPModel, inGammaPrime, inNumObsPerScen, inOptimizer, inCutType )
-            if nargin < 1 || ~isa(inLPModel,'LPModel')
+        function obj = LRLP( inLPModel, inPhi, inNumObsPerScen, inRho, inOptimizer, inCutType )
+            if ~isa(inLPModel,'LPModel')
                 error('LRLP must be initialized with an LPModel as its first argument')
+            end
+            if ~isa(inPhi,'PhiDivergence')
+                error('LRLP must be initialized with a PhiDivergence as the second argument')
             end
             
             obj.lpModel = inLPModel;
+            obj.phi = inPhi;
             
-            if nargin < 5
+            if nargin < 3
+                inNumObsPerScen = ones(1,obj.lpModel.numScenarios);
+            end
+            
+            obj.numObsPerScen = inNumObsPerScen;
+            obj.numObsTotal = sum(obj.numObsPerScen);
+            if nargin < 4  || inRho < 0
+                phi2deriv = obj.phi.SecondDerivativeAt1();
+                if isfinite(phi2deriv) && phi2deriv > 0
+                    inRho = phi2deriv / (2*obj.numObsTotal) * ...
+                        chi2inv(0.95,obj.lpModel.numScenarios - 1);
+                else
+                    error(['Second derivative of phi(t) does not allow ' ...
+                        'for automatically setting rho'])
+                end
+            end
+            
+            if nargin < 6
                 inCutType = 'multi';
-                if nargin < 4
+                if nargin < 5
                     inOptimizer = 'linprog';
-                    if nargin < 3
-                        inNumObsPerScen = ones(1,obj.lpModel.numScenarios);
-                        if nargin < 2
-                            inGammaPrime = 0.5;
-                        end
-                    end
                 end
             end
             
@@ -98,15 +113,10 @@ classdef LRLP < handle
             if length(inNumObsPerScen) ~= obj.lpModel.numScenarios
                 error('Size of observations differs from number of scenarios')
             end
-            if inGammaPrime < 0 || inGammaPrime > 1
-                error('Gamma Prime must be between 0 and 1')
-            end
             
-            obj.gammaPrime = inGammaPrime;
-            obj.numObsPerScen = inNumObsPerScen;
-            obj.numObsTotal = sum(obj.numObsPerScen);
-            obj.nBar = obj.numObsTotal*(log(obj.numObsTotal)-1) ...
-                - log(obj.gammaPrime);
+            obj.rho = inRho;
+            obj.phi.SetComputationLimit( obj.numObsPerScen, obj.rho );
+            
             obj.optimizer = inOptimizer;
             
             obj.objectiveTolerance = 1e-5;
@@ -139,7 +149,7 @@ classdef LRLP < handle
             obj.SCALE_UP = 1;
             obj.SCALE_DOWN = 2;
             
-            obj.candidateSolution = Solution( obj.lpModel, inCutType );
+            obj.candidateSolution = Solution( obj.lpModel, obj.phi, inCutType );
             obj.InitializeBenders();
             
             obj.trustRegionMinSize = obj.trustRegionSize / 10;
@@ -199,9 +209,19 @@ classdef LRLP < handle
             
             obj.candidateSolution.SetX( x0 );
             obj.candidateSolution.SetLambda( 1 );
-            obj.candidateSolution.SetMu( -Inf );
+            obj.candidateSolution.SetMu( 0 );
             
             obj.SolveSubProblems();
+            
+            % Objective Value Scaling
+            obj.objectiveScale = 10^-(floor(log10(max(obj.candidateSolution.SecondStageValues))-1));
+            obj.candidateSolution.Reset();
+            obj.candidateSolution.SetX( x0 );
+            obj.candidateSolution.SetLambda( 1 );
+            obj.candidateSolution.SetMu( 0 );
+            obj.SolveSubProblems();
+            % End objective value scaling
+            
             obj.GenerateCuts();
             
             obj.UpdateBestSolution();
@@ -224,21 +244,22 @@ classdef LRLP < handle
             currentBest = obj.GetDecisions( obj.bestSolution );
 
             % Best solution should be feasible
-            feasTol = max(abs(currentBest)) * 1e-8;
+            feasTol = 1e-8;
             assert( all( abs( AMaster*currentBest - bMaster ) ...
-                < feasTol ), ...
+                <= feasTol * (abs(bMaster) + (bMaster==0)) ), ...
                 ['bestSolution master infeasibility: ' ...
                 num2str(max(abs( AMaster*currentBest - bMaster )))])
             assert( all( obj.objectiveCutsMatrix*currentBest ...
-                - obj.objectiveCutsRHS < feasTol ), ...
+                - obj.objectiveCutsRHS ...
+                <= feasTol * (abs(obj.objectiveCutsRHS) + (obj.objectiveCutsRHS==0)) ), ...
                 ['bestSolution objective infeasibility: ' ...
                 num2str( max(obj.objectiveCutsMatrix*currentBest ...
                 - obj.objectiveCutsRHS) )] )
-            assert( all( obj.feasibilityCutsMatrix*currentBest ...
-                - obj.feasibilityCutsRHS < feasTol ), ...
-                ['bestSolution feasibility infeasibility: ' ...
-                num2str( max(obj.feasibilityCutsMatrix*currentBest ...
-                - obj.feasibilityCutsRHS) )] )
+            assert( isempty(obj.feasibilityCutsMatrix) || ...
+                all( obj.feasibilityCutsMatrix*currentBest ...
+                - obj.feasibilityCutsRHS ...
+                <= feasTol * (abs(obj.feasibilityCutsRHS) + (obj.feasibilityCutsRHS==0)) ), ...
+                'bestSolution feasibility infeasibility' )
 
             obj.candidateSolution.Reset;
             
@@ -257,6 +278,14 @@ classdef LRLP < handle
                         AMaster, bMaster, ...
                         lMaster, uMaster, ...
                         [], obj.optimizerOptions );
+                    
+                    % exitFlag = 5 indicates an optimal solution found, but
+                    % with scaling issues.  Set exitFlag = 1, and hope
+                    % CPLEX does better soon.
+                    if exitFlag == 5
+                        warning('wrn:exitflag', 'Changing exitFlag from 5 to 1')
+                        exitFlag = 1;
+                    end
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
@@ -372,7 +401,10 @@ classdef LRLP < handle
                     && obj.candidateSolution.MuFeasible ...
                     && obj.candidateSolution.TrustRegionInterior
                 candidateDecisions = obj.GetDecisions( obj.candidateSolution, 'master' );
-                assert( cMaster*candidateDecisions >= obj.zLower )
+                assert( cMaster*candidateDecisions >= obj.zLower, ...
+                    ['c*x - zLower = ' ...
+                    num2str(cMaster*candidateDecisions - obj.zLower) ...
+                    ' < 0'])
                 obj.zLowerUpdated = true;
                 obj.zLower = cMaster*candidateDecisions;
             else
@@ -394,7 +426,7 @@ classdef LRLP < handle
         
         function WriteProgress( obj )
             disp(' ')
-            disp(['gamma'' = ' num2str(obj.gammaPrime)])
+            disp([obj.phi.divergence ', rho = ' num2str(obj.rho)])
             disp(['Observations: ' num2str(obj.numObsPerScen)])
             disp([num2str(obj.NumObjectiveCuts) ' objective cuts, '...
                 num2str(obj.NumFeasibilityCuts) ' feasibility cuts.'])
@@ -480,13 +512,17 @@ classdef LRLP < handle
         function DeleteOldestCut( obj )
             obj.objectiveCutsMatrix = obj.objectiveCutsMatrix(length(obj.THETA)+1:end,:);
             obj.objectiveCutsRHS = obj.objectiveCutsRHS(length(obj.THETA)+1:end);
-            assert( ~isempty(obj.objectiveCutsRHS) )
+%             No reason to not allow cuts to be completely deleted, but
+%             will have to monitor for infinite loops.
+%             assert( ~isempty(obj.objectiveCutsRHS) )
         end
         
         function DeleteOldestFeasibilityCut( obj )
             obj.feasibilityCutsMatrix = obj.feasibilityCutsMatrix(2:end,:);
             obj.feasibilityCutsRHS = obj.feasibilityCutsRHS(2:end);
-            assert( ~isempty(obj.feasibilityCutsRHS) )
+%             No reason to not allow cuts to be completely deleted, but
+%             will have to monitor for infinite loops.
+%             assert( ~isempty(obj.feasibilityCutsRHS) )
         end
         
     end
@@ -542,17 +578,19 @@ classdef LRLP < handle
             xLocal = obj.candidateSolution.X;
             lambdaLocal = obj.candidateSolution.Lambda;
             muLocal = obj.candidateSolution.Mu;
-
-            localValues = obj.candidateSolution.SecondStageValues;
             
             intermediateSlope = zeros(obj.lpModel.numScenarios, size(obj.lpModel.A,2)+2);
             
+            s = obj.candidateSolution.S();
+            conjVals = obj.phi.Conjugate(s);
+            conjDerivs = obj.phi.ConjugateDerivative(s);
             for ii=1:obj.lpModel.numScenarios
                 intermediateSlope(ii,:) ...
-                    = [ obj.numObsTotal*lambdaLocal*(obj.candidateSolution.SecondStageSlope(ii)./(muLocal - localValues(ii))), ...
-                    obj.numObsTotal*log(lambdaLocal) + obj.numObsTotal - obj.numObsTotal*log(muLocal - localValues(ii)), ...
-                    -obj.numObsTotal*lambdaLocal/(muLocal-localValues(ii))];
+                    = [ conjDerivs(ii) * obj.candidateSolution.SecondStageSlope(ii), ...
+                    conjVals(ii) - conjDerivs(ii)*s(ii), ...
+                    -conjDerivs(ii)];
             end
+            intermediateSlope(obj.numObsPerScen==0,:) = zeros(sum(obj.numObsPerScen==0), size(obj.lpModel.A,2)+2);
             
             switch length(obj.THETA)
                 case 1
@@ -573,8 +611,9 @@ classdef LRLP < handle
         % the matrix
         function GenerateFeasibilityCut( obj )
             [~,hIndex] = max( obj.candidateSolution.SecondStageValues );
+            limit = min( obj.phi.limit, obj.phi.computationLimit );
             
-            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), 0, -1, zeros(1,length(obj.THETA))];
+            feasSlope = [obj.candidateSolution.SecondStageSlope(hIndex), -limit, -1, zeros(1,length(obj.THETA))];
             feasInt = obj.candidateSolution.SecondStageIntercept(hIndex);
             
             obj.feasibilityCutsMatrix = [obj.feasibilityCutsMatrix; sparse(feasSlope)];
@@ -584,28 +623,18 @@ classdef LRLP < handle
         % FindFeasibleMu uses Newton's Method to find a feasible value of
         % mu
         function FindFeasibleMu( obj )
+%             q = obj.numObsPerScen / obj.numObsTotal;
             lambdaLocal = obj.candidateSolution.Lambda;
+            limit = min( obj.phi.limit, obj.phi.computationLimit );
             
             localValues = obj.candidateSolution.SecondStageValues;
-            [hMax,hIndex] = max( localValues );
-            mu = obj.lpModel.numScenarios/2 ...
-                * obj.numObsPerScen(hIndex)*lambdaLocal() ...
-                + hMax;
+            mu = max(localValues) - limit*(1-1e-3)*lambdaLocal;
             
-            for ii=1:200
-                muOld = mu;
-                mu = mu + (sum(lambdaLocal() * obj.numObsPerScen'./(mu - localValues))-1) / ...
-                    sum(lambdaLocal() * obj.numObsPerScen'./((mu - localValues).^2));
-                if abs(mu - muOld) < min(mu,muOld)*0.01
-                    break
-                end
-            end
+%             mu = fsolve( @(mu) q * ...
+%                 obj.phi.ConjugateDerivative((localValues - mu)/lambdaLocal) - 1, ...
+%                 mu );
             
-            if mu > hMax
-                obj.candidateSolution.SetMu( mu );
-            else
-                obj.candidateSolution.SetMu( hMax*1.001 );
-            end
+            obj.candidateSolution.SetMu( mu );
         end
         
         % FindExpectedSecondStage gets the expected value of the second
@@ -624,10 +653,12 @@ classdef LRLP < handle
             end
             
             lambdaLocal = inSolution.Lambda;
-            muLocal = inSolution.Mu;
             
-            rawTheta = obj.numObsTotal*lambdaLocal*log(lambdaLocal) ...
-                - obj.numObsTotal*lambdaLocal*log(muLocal-inSolution.SecondStageValues);
+            rawTheta = lambdaLocal * obj.phi.Conjugate(inSolution.S());
+            rawTheta(obj.numObsPerScen==0) = 0;
+            
+            assert( all(isreal(rawTheta)), 'Possible scaling error' )
+            assert( all(isfinite(rawTheta)), ['Nonfinite theta, lambda = ' num2str(lambdaLocal)])
             
             switch length(obj.THETA)
                 case 1
@@ -699,11 +730,15 @@ classdef LRLP < handle
         % CalculateProbabilty calculates the worst case distribution for
         % the current best solution
         function CalculateProbability( obj )
-            obj.pWorst = obj.bestSolution.Lambda*obj.numObsPerScen ...
-                ./(obj.bestSolution.Mu-obj.bestSolution.SecondStageValues');
-            obj.relativeLikelihood ...
-                = exp(sum( obj.numObsPerScen.*( log(obj.pWorst) ...
-                -log(obj.numObsPerScen/obj.numObsTotal) ) ));
+            q = obj.numObsPerScen / obj.numObsTotal;
+            s = obj.bestSolution.S';
+            obj.pWorst = q .* obj.phi.ConjugateDerivative( s );
+            obj.pWorst(q==0) = 0;
+            limitCases = abs(s - obj.phi.limit) <= 1e-6;
+            if nnz(limitCases) > 0
+                obj.pWorst(limitCases) = (1-sum(obj.pWorst))/nnz(limitCases);
+            end
+            obj.calculatedDivergence = sum( obj.phi.Contribution(obj.pWorst, q) );
         end
         
         % ResetSecondStageSolutions clears the second stage solution values
@@ -718,7 +753,7 @@ classdef LRLP < handle
         % GetMasterc gets the cost vector for the master problem
         function cOut = GetMasterc( obj )
             cOut = [obj.lpModel.c, 0, 0, 0] * obj.objectiveScale;
-            cOut(obj.LAMBDA) = obj.nBar;
+            cOut(obj.LAMBDA) = obj.rho;
             cOut(obj.MU) = 1;
             switch length(obj.THETA)
                 case 1

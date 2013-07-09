@@ -1,9 +1,9 @@
 function [lrlp, outTotalCuts, outTotalProbs] = ...
-    SolveLRLP( simpleLP, gp, obs, cutType, isGraphical )
+    SolveLRLP( simpleLP, phi, obs, rho, cutType, isGraphical )
 
-if nargin < 5
+if nargin < 6
     isGraphical = false;
-    if nargin < 4
+    if nargin < 5
         cutType = 'multi';
     end
 end
@@ -23,7 +23,7 @@ else
     disp(' ')
 end
 
-lrlp = LRLP( simpleLP, gp, obs, opt, cutType );
+lrlp = LRLP( simpleLP, phi, obs, rho, opt, cutType );
 
 totalProblemsSolved = 1;
 totalCutsMade = 1;
@@ -53,9 +53,9 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
                 error( ['Unknown error code: ' num2str(exitFlag)] )
         end
         lrlp.DeleteOldestCut;
-        if lrlp.NumFeasibilityCuts > 1
+%         if lrlp.NumFeasibilityCuts > 1
             lrlp.DeleteOldestFeasibilityCut;
-        end
+%         end
         disp([num2str(lrlp.NumObjectiveCuts) ' Objective Cuts Remaining, ' ...
             num2str(lrlp.NumFeasibilityCuts) ' Feasibility Cuts Remaining.'])
         continue

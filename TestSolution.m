@@ -1,7 +1,8 @@
 function TestSolution()
 
 lp = InitializeSimpleTwoStageLP;
-s = Solution(lp,'multi');
+phi = PhiDivergence('burg');
+s = Solution(lp,phi,'multi');
 
 % Size errors for all variables
 assertExceptionThrown( @() s.SetX(zeros(size(lp.A,2)+1,1)), ...
@@ -19,10 +20,15 @@ assertExceptionThrown( @() s.SetTheta(rand(1,lp.numScenarios),'blah'), ...
     'Solution:SetTheta:type' )
 
 % Assign legitimate variables
-s.SetX(0.5);
-s.SetLambda(3);
-s.SetMu(2);
-s.SetTheta(ones(1,lp.numScenarios),'master');
+x = 0.5;
+l = 0.1;
+m = 2;
+th = ones(1,lp.numScenarios);
+s.SetX(x);
+s.SetLambda(l);
+s.SetMu(m);
+s.SetTheta(th,'master');
+assertEqual( s.Limit, phi.limit )
 
 % Not allowed to set X or Lambda a second time
 assertExceptionThrown( @() s.SetX(1), 'Solution:SetX:setagain' )
@@ -55,10 +61,16 @@ assertExceptionThrown( @() s.SetSecondStageDual( 1, [2 3], 'int' ), ...
     'Solution:SetSecondStageDual:size' )
 
 % Assign second stage costs and dual values
+v = zeros(lp.numScenarios,1);
+ds = v;
+di = v;
 for scen=1:lp.numScenarios
-    s.SetSecondStageValue( scen, scen-1 );
-    s.SetSecondStageDual( scen, scen*2, 'slope' );
-    s.SetSecondStageDual( scen, scen/3, 'int' );
+    v(scen) = scen-1;
+    ds(scen) = scen*2;
+    di(scen) = scen/3;
+    s.SetSecondStageValue( scen, v(scen) );
+    s.SetSecondStageDual( scen, ds(scen), 'slope' );
+    s.SetSecondStageDual( scen, di(scen), 'int' );
 end
 s.SetTheta(2*ones(1,lp.numScenarios),'true');
 
@@ -67,8 +79,11 @@ s.SecondStageValues;
 s.SecondStageSlope(1);
 s.SecondStageIntercept(1);
 
+% Check that s variables are being calculated correctly
+assertElementsAlmostEqual( s.S(), (v-m)/l, 'relative', 1e-6 )
+
 % Determine whether mu should be feasible
-muShouldBeFeasible = s.Mu > max(s.SecondStageValues);
+muShouldBeFeasible = max(s.S()) < s.Limit();
 
 % Assert whether mu should be feasible
 assertTrue( s.MuFeasible == muShouldBeFeasible )
@@ -80,14 +95,14 @@ assertTrue( s.MuFeasible == muShouldBeFeasible )
 % Reset, then assign varaibles again
 s.Reset()
 s.SetX(-0.5)
-s.SetLambda(15)
-s.SetMu(-0.3)
+s.SetLambda(lp.numScenarios)
+s.SetMu(0)
 s.SetTheta(4*ones(1,lp.numScenarios),'master')
 s.SetTrustRegionInterior( false )
 
 % Assign second stage costs and duals, this time with Mu feasible
 for scen=1:lp.numScenarios
-    s.SetSecondStageValue( scen, s.Mu - scen );
+    s.SetSecondStageValue( scen, s.Mu + scen - 1 );
     s.SetSecondStageDual( scen, s.Mu - scen*2, 'slope' );
     s.SetSecondStageDual( scen, s.Mu - scen/3, 'int' );
 end
@@ -99,7 +114,7 @@ assertTrue( s.MuFeasible )
 
 % Test single cut version
 
-t = Solution( lp, 'single' );
+t = Solution( lp, phi, 'single' );
 
 assertExceptionThrown( @() t.SetTheta(zeros(2,1),'master'), ...
     'Solution:SetTheta:size' )
