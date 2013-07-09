@@ -1,4 +1,4 @@
-function TestTwoStageGraphical
+function TestTwoStage
 
 simpleLP = InitializeSimpleTwoStageLP();
 phiTypes = {'burg','kl','chi2','mchi2'};
