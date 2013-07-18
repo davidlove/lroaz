@@ -1,25 +1,25 @@
-function GatherLROData( phiType, saveFileName )
+function GatherLROData( phiType, lpModel, saveFileName )
 
-if nargin < 2
+if nargin < 3
     saveFileName = 'saved_variables.mat';
-    if nargin < 1
-        phiType = 'kl';
+    if nargin < 2
+        waterFolders = { ...
+            'SP C/5/', ...
+            'SP C/6/', ...
+            'SP C/7/', ...
+            'SP C/8/', ...
+            };
+        years = 41;
+        timeLag = 1;
+        firstStageYears = 5;
+        
+        lpModel = LPModel( waterFolders, years, timeLag, firstStageYears );
+        if nargin < 1
+            phiType = 'kl';
+        end
     end
 end
 
-% lpModel = InitializeSimpleTwoStageLP();
-
-waterFolders = { ...
-                 'SP C/5/', ...
-                 'SP C/6/', ...
-                 'SP C/7/', ...
-                 'SP C/8/', ...
-               };
-years = 41;
-timeLag = 1;
-firstStageYears = 5;
-
-lpModel = LPModel( waterFolders, years, timeLag, firstStageYears );
 phi = PhiDivergence( phiType );
 
 obs = 1*[1 1 1 1];
