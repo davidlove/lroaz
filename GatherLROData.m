@@ -22,7 +22,7 @@ end
 
 phi = PhiDivergence( phiType );
 
-obs = 1*[1 1 1 1];
+obs = ones(1,lpModel.numScenarios);
 
 if isinf(phi.limit) && any(obs == 0)
     error(['Phi divergence ' phi.divergence ' does not allow poping up probabilities'])
