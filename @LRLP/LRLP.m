@@ -447,7 +447,7 @@ classdef LRLP < handle
             
             switch obj.trustRegionScaled
                 case obj.NO_SCALE
-                    disp('No change in trust region scale')
+                    disp(['No change in trust region scale, = ' num2str(obj.trustRegionSize)])
                 case obj.SCALE_UP
                     disp(['Trust region scaled up to ' ...
                         num2str(obj.trustRegionSize)])
