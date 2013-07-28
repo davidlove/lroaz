@@ -119,14 +119,14 @@ classdef LRLP < handle
             
             obj.optimizer = inOptimizer;
             
-            obj.objectiveTolerance = 1e-5;
+            obj.objectiveTolerance = 1e-6;
             obj.probabilityTolerance = 1e-3;
             
-            obj.trustRegionRhoBound = 1/4;
+            obj.trustRegionRhoBound = 1/10;
             obj.trustRegionScaleDown = 1/4;
             obj.trustRegionScaleUp = 3;
-            obj.trustRegionEta = 1/50;
-            obj.trustRegionRatio = 0.99;
+            obj.trustRegionEta = 0;
+            obj.trustRegionRatio = 1-1e-6;
             
             assert( obj.trustRegionEta <= obj.trustRegionRhoBound )
             
