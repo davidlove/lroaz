@@ -1,14 +1,20 @@
-function [x,c,A,b,l,u] = ExtensiveForm(lp)
+function [c,A,b,l,u] = ExtensiveForm(lp)
 
 c = lp.c;
 b = lp.b;
 l = lp.l;
 u = lp.u;
 [i,j,v] = find(lp.A);
+if isempty(i)
+    [i,j] = size(lp.A);
+    v = 0;
+end
 prob = 1./lp.numScenarios;
 
 for ss=1:lp.numScenarios
-    c = [c, prob*lp.Getq(ss)'];
+    q = lp.Getq(ss);
+    q = q(:)';
+    c = [c, q];
     b = [b; lp.Getd(ss)];
     l = [l; lp.Getl2(ss)];
     u = [u; lp.Getu2(ss)];
@@ -26,4 +32,4 @@ for ss=1:lp.numScenarios
 end
 A = sparse(i,j,v);
 
-x = linprog(c,[],[],A,b,l,u);
+% x = linprog(c,[],[],A,b,l,u);
