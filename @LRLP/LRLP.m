@@ -300,6 +300,11 @@ classdef LRLP < handle
             else
                 currentCandidate = currentBest;
             end
+            
+            if currentCandidate(obj.LAMBDA) < lMaster(obj.LAMBDA)
+                currentCandidate(obj.LAMBDA) = lMaster(obj.LAMBDA);
+            end
+            
             obj.candidateSolution.SetX( currentCandidate(1:end-2-length(obj.THETA)) )
             obj.candidateSolution.SetLambda( currentCandidate(obj.LAMBDA) )
             obj.candidateSolution.SetMu( currentCandidate(obj.MU) )
