@@ -534,6 +534,13 @@ classdef LRLP < handle
 %             assert( ~isempty(obj.feasibilityCutsRHS) )
         end
         
+        function ForceAcceptSolution( obj )
+            obj.newSolutionAccepted = true;
+            obj.UpdateBestSolution();
+            obj.trustRegionSize = min( obj.trustRegionMaxSize, ...
+                        obj.trustRegionScaleUp^7 * obj.trustRegionMinSize );
+        end
+        
     end
     
     methods (Access=private)

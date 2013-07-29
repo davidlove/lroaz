@@ -31,10 +31,12 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     totalProblemsSolved = totalProblemsSolved + 1;
     
     exitFlag = lrlp.SolveMasterProblem;
-    if exitFlag ~= 1 || (exist('cS','var') && isequal(cS,lrlp.CandidateVector))
-        if cS == lrlp.CandidateVector
-            exitFlag = -100;
-        end
+    if (exist('cS','var') && isequal(cS,lrlp.CandidateVector))
+        disp(' ')
+        disp('Repeat Solution')
+        exitFlag = -100;
+    end
+    if exitFlag ~= 1 && exitFlag ~= -100
         disp(['exitFlag = ' num2str(exitFlag)])
         switch exitFlag
             case 0
@@ -74,6 +76,10 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
     end
     
     lrlp.UpdateTrustRegionSize;
+    
+    if exitFlag == -100
+        lrlp.ForceAcceptSolution();
+    end
     
     lrlp.UpdateSolutions;
     
