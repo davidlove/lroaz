@@ -104,6 +104,11 @@ classdef PhiDivergence < handle
             s = fsolve(@(s)obj.conjugateDerivative(s) - t, 1);
             obj.computationLimit = s;
         end
+        
+        function rho = Rho( obj, alpha, obs )
+            rho = obj.SecondDerivativeAt1() / (2*sum(obs)) * ...
+                chi2inv(1-alpha,length(obs) - 1);
+        end
     end
 end
 
