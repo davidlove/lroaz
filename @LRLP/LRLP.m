@@ -49,7 +49,6 @@ classdef LRLP < handle
         trustRegionLower
         trustRegionUpper
         trustRegionRho
-        objectiveScale
         optimizerOptions
     end
     
@@ -60,6 +59,7 @@ classdef LRLP < handle
         currentProbabilityTolerance
         pWorst
         calculatedDivergence
+        objectiveScale
     end
     
     %     Boolean parameters for the algorithm
@@ -338,6 +338,9 @@ classdef LRLP < handle
             
             ind = 1:obj.THETA(1)-1;
             
+            assert( all( abs(upperT(ind) - (currentBest(ind) + obj.trustRegionRatio*obj.trustRegionSize) ) < 1e-6 ) )
+            assert( all( abs(lowerT(ind) - (currentBest(ind) - obj.trustRegionRatio*obj.trustRegionSize) ) < 1e-6 ) )
+            
             assert( all( upperT(ind) - lowerT(ind) ...
                 - obj.trustRegionRatio*( obj.trustRegionUpper(ind) - obj.trustRegionLower(ind) ) ...
                 < 1e-6 ) )
@@ -402,18 +405,18 @@ classdef LRLP < handle
             if obj.newSolutionAccepted
                 obj.UpdateBestSolution();
                 bestDecisions = obj.GetDecisions( obj.bestSolution, 'true' );
-                assert( cMaster*bestDecisions <= obj.zUpper, ...
-                    ['rho = ' num2str(obj.trustRegionRho)])
+%                 assert( cMaster*bestDecisions <= obj.zUpper, ...
+%                     ['rho = ' num2str(obj.trustRegionRho)])
                 obj.zUpper = cMaster*bestDecisions;
             end
             
             if obj.candidateSolution.MuFeasible ...
                     && obj.candidateSolution.TrustRegionInterior
                 candidateDecisions = obj.GetDecisions( obj.candidateSolution, 'master' );
-                assert( cMaster*candidateDecisions >= obj.zLower, ...
-                    ['c*x - zLower = ' ...
-                    num2str(cMaster*candidateDecisions - obj.zLower) ...
-                    ' < 0'])
+%                 assert( cMaster*candidateDecisions >= obj.zLower, ...
+%                     ['c*x - zLower = ' ...
+%                     num2str(cMaster*candidateDecisions - obj.zLower) ...
+%                     ' < 0'])
                 obj.zLowerUpdated = true;
                 obj.zLower = cMaster*candidateDecisions;
             else
