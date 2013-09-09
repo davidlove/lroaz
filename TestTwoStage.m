@@ -49,6 +49,12 @@ format short e
 disp('   ------------------------')
 disp('   Objective    Probability')
 disp([tols,ptols])
+
+mtol = max(tols);
+mp = max(ptols);
 disp('   Maximums')
-disp([max(tols),max(ptols)])
+disp([mtol,mp])
+
+assert(mtol <= 1e-6)
+assert(mp <= 1e-2)
 end
