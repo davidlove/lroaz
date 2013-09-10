@@ -1,8 +1,10 @@
-function PlotSolveTime( phiType, lpModel, scens )
+function data = PlotSolveTime( phiType, lpModel, scens )
 %PlotSolveTime Plot time required to solve a phi-divergence problem vs
 %number of scenarios
 
 phi = PhiDivergence( phiType );
+
+data = struct;
 
 for ii = 1:length(scens)
     lp = PruneScenarios( lpModel, 1:scens(ii) );
@@ -19,27 +21,30 @@ for ii = 1:length(scens)
     z1 = solvedLRLP.ObjectiveValue;
     
     if ii==1
-        x = zeros(length(x1),length(scens));
-        lambda = zeros(length(l1),length(scens));
-        mu = zeros(length(m1),length(scens));
-        objVals = zeros(length(z1),length(scens));
-        calcRho = zeros(length(r1),length(scens));
-        numProbs = zeros(1,length(scens));
-        numCuts = zeros(1,length(scens));
-        timeRuns = zeros(1,length(scens));
+        data.scens = scens;
+        data.x = zeros(length(x1),length(scens));
+        data.lambda = zeros(length(l1),length(scens));
+        data.mu = zeros(length(m1),length(scens));
+        data.objVals = zeros(length(z1),length(scens));
+        data.calcRho = zeros(length(r1),length(scens));
+        data.numProbs = zeros(1,length(scens));
+        data.numCuts = zeros(1,length(scens));
+        data.timeRuns = zeros(1,length(scens));
     end
     
-    x(:,ii) = x1;
-    lambda(:,ii) = l1;
-    mu(:,ii) = m1;
-    objVals(:,ii) = z1;
-    calcRho(:,ii) = r1;
-    numProbs(ii) = n1;
-    numCuts(ii) = c1;
-    timeRuns(ii) = timeIndiv;
+    data.x(:,ii) = x1;
+    data.lambda(:,ii) = l1;
+    data.mu(:,ii) = m1;
+    data.objVals(:,ii) = z1;
+    data.calcRho(:,ii) = r1;
+    data.numProbs(ii) = n1;
+    data.numCuts(ii) = c1;
+    data.timeRuns(ii) = timeIndiv;
 end
 
-plot(scens, timeRuns, 'o')
+plot(data.scens, data.timeRuns, 'o', 'MarkerSize',10)
+xlabel( 'N', 'FontSize',16 )
+ylabel( 'Solution Time', 'FontSize',16)
 
 end
 
