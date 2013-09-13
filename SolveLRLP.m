@@ -3,12 +3,16 @@ function [lrlp, outTotalCuts, outTotalProbs] = SolveLRLP( varargin )
 % Phi-divergence problem
 %
 % Keyword arguments (*required arguments):
-%    cuttype: 'single' cut or 'multi' cut
-%    isgraphical: true or false for desired graphical optimization (very slow)
 %    lp*: LPModel object defining the SLP-2
 %    obs*: vector of observations numbers of the scenarios
 %    phi*: PhiDivergence object or string defining the phi-divergence
 %    rho*: Value of rho to construct the confidence region
+%    cuttype: 'single' cut or 'multi' cut
+%    isgraphical: true or false for desired graphical optimization (very slow)
+
+% -------------------------------------------------------------------
+% Input Parsing
+% -------------------------------------------------------------------
 
 requiredArgs = {'lp', 'obs', 'phi', 'rho'};
 
@@ -43,6 +47,10 @@ for vv = 1:2:length(varargin)
     end
 end
 
+% -------------------------------------------------------------------
+% Default variable assignments
+% -------------------------------------------------------------------
+
 if ~exist('cutType', 'var')
     cutType = 'multi';
 end
@@ -50,15 +58,30 @@ if ~exist('isGraphical', 'var')
     isGraphical = false;
 end
 
-if ~ismember( cutType, {'single','multi'} )
-        error([cutType ' is not a valid cut type'])
-end
+% -------------------------------------------------------------------
+% Required Variables
+% -------------------------------------------------------------------
 
 for aa = requiredArgs
     if ~exist(aa{1}, 'var')
         error([aa{1}, ' is required but not defined'])
     end
 end
+
+% -------------------------------------------------------------------
+% Value Checking
+% -------------------------------------------------------------------
+
+if ~isa(lp, 'LPModel')
+    error('lp must be an LPModel object')
+end
+
+if ~ismember( cutType, {'single','multi'} )
+        error([cutType ' is not a valid cut type'])
+end
+
+% -------------------------------------------------------------------
+% -------------------------------------------------------------------
 
 opt = 'cplexlp';
 if exist(opt,'file')

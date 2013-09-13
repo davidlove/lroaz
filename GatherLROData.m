@@ -2,11 +2,17 @@ function GatherLROData( varargin )
 % GatherLROData solves the phi-divergence model for multiple values of rho
 % and reports the results
 %
-% Keyword arguments:
+% Keyword arguments (*required arguments):
+%    phi*: PhiDivergence object or string defining the phi-divergence
 %    lp: LPModel object defining the SLP-2
 %    obs: vector of observations numbers of the scenarios
-%    phi: PhiDivergence object or string defining the phi-divergence
 %    savefile: String or file object denoting the file to save data to
+
+% -------------------------------------------------------------------
+% Input Parsing
+% -------------------------------------------------------------------
+
+requiredArgs = {'phi'};
 
 if mod(length(varargin),2) == 1
     error('Arguments must be key, value pairs')
@@ -35,7 +41,10 @@ for vv = 1:2:length(varargin)
     end
 end
 
+% -------------------------------------------------------------------
 % Default variable assignments
+% -------------------------------------------------------------------
+
 if ~exist('lp', 'var')
         waterFolders = { ...
             'SP C/5/', ...
@@ -56,15 +65,30 @@ if ~exist('savefile', 'var')
     saveFileName = 'saved_variables.mat';
 end
 
-if ~exist('phi', 'var')
-    error('Must specify a phi-divergence type')
+% -------------------------------------------------------------------
+% Required Variables
+% -------------------------------------------------------------------
+
+for aa = requiredArgs
+    if ~exist(aa{1}, 'var')
+        error([aa{1}, ' is required but not defined'])
+    end
 end
 
 % -------------------------------------------------------------------
+% Value Checking
+% -------------------------------------------------------------------
+
+if ~isa(lp, 'LPModel')
+    error('lp must be an LPModel object')
+end
 
 if isinf(phi.limit) && any(obs == 0)
     error(['Phi divergence ' phi.divergence ' does not allow poping up probabilities'])
 end
+
+% -------------------------------------------------------------------
+% -------------------------------------------------------------------
 
 alpha = 10.^linspace(-2.93,0,50);
 alpha(end) = mean(alpha(end-1:end));

@@ -2,10 +2,16 @@ function data = PlotSolveTime( varargin )
 %PlotSolveTime Plot time required to solve a phi-divergence problem vs
 %number of scenarios
 %
-% Keyword arguments:
-%    lp: LPModel object
-%    phi: PhiDivergence object or string type of phi-divergence
-%    scens: vector giving number of scenarios to time solution against
+% Keyword arguments (*required arguments):
+%    lp*: LPModel object
+%    phi*: PhiDivergence object or string type of phi-divergence
+%    scens*: vector giving number of scenarios to time solution against
+
+% -------------------------------------------------------------------
+% Input Parsing
+% -------------------------------------------------------------------
+
+requiredArgs = {'lp', 'phi', 'scens'};
 
 if mod(length(varargin),2) == 1
     error('Arguments must be key, value pairs')
@@ -29,6 +35,37 @@ for vv = 1:2:length(varargin)
             scens = value;
         otherwise
             error(['Unknown variable ', key])
+    end
+end
+
+% -------------------------------------------------------------------
+% Default variable assignments
+% -------------------------------------------------------------------
+
+% -------------------------------------------------------------------
+% Required Variables
+% -------------------------------------------------------------------
+
+for aa = requiredArgs
+    if ~exist(aa{1}, 'var')
+        error([aa{1}, ' is required but not defined'])
+    end
+end
+
+% -------------------------------------------------------------------
+% Value Checking
+% -------------------------------------------------------------------
+
+if ~isa(lp, 'LPModel')
+    error('lp must be an LPModel object')
+end
+
+% -------------------------------------------------------------------
+% -------------------------------------------------------------------
+
+for aa = requiredArgs
+    if ~exist(aa{1}, 'var')
+        error([aa{1}, ' is required but not defined'])
     end
 end
 
