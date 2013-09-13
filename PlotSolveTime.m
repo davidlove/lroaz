@@ -39,7 +39,8 @@ for ii = 1:length(scens)
     obs = ones(1,scens(ii));
     
     timeStart = tic;
-    [solvedLRLP,c1,n1] = SolveLRLP( lpPruned, phi, obs, -1 );
+    [solvedLRLP,c1,n1] = SolveLRLP( 'lp',lpPruned, 'phi',phi, ...
+        'obs',obs, 'rho',-1 );
     timeIndiv = toc(timeStart);
     
     x1 = solvedLRLP.bestSolution.X;

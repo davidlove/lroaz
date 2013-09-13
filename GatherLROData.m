@@ -75,7 +75,8 @@ iiSet = 1:length(rho);
 
 for ii = iiSet
     timeStart = tic;
-    [solvedLRLP,c1,n1] = SolveLRLP( lp, phi, obs, rho(ii), 'multi' );
+    [solvedLRLP,c1,n1] = SolveLRLP( 'lp',lp, 'phi',phi, 'obs',obs, ...
+        'rho',rho(ii), 'cuttype','multi' );
     timeIndiv = toc(timeStart);
     
     p1 = solvedLRLP.pWorst;

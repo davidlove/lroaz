@@ -30,7 +30,8 @@ for ii = 1:numProblems
         rho = -1;
     end
     
-    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( simpleLP, phi, obs, rho, 'multi', false );
+    [solvedLRLP,cuts(ii),probs(ii)] = SolveLRLP( 'lp',simpleLP, 'phi',phi, ...
+        'obs',obs, 'rho',rho, 'cuttype','multi', 'isgraphical',false );
     
     tols(ii) = solvedLRLP.currentObjectiveTolerance;
     ptols(ii) = solvedLRLP.currentProbabilityTolerance;

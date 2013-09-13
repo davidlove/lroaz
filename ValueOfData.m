@@ -12,7 +12,7 @@ predDecrease = zeros(n,l);
 actualDecrease = predDecrease;
 
 for ii=1:l
-    plpBase = SolveLRLP(lp,phi,obs,rho(ii));
+    plpBase = SolveLRLP('lp',lp, 'phi',phi, 'obs',obs, 'rho',rho(ii));
     p = plpBase.pWorst;
     p = p(:);
     
@@ -29,7 +29,8 @@ for ii=1:l
     for jj=1:n
         newObs = obs;
         newObs(jj) = newObs(jj) + 1;
-        plpMod = SolveLRLP(lp,phi,newObs,N/(N+1)*rho(ii));
+        plpMod = SolveLRLP('lp',lp, 'phi',phi, ...
+            'obs',newObs, 'rho',N/(N+1)*rho(ii));
         actualDecrease(jj,ii) = 1 - plpMod.ObjectiveValue/plpBase.ObjectiveValue;
         if predDecrease(jj,ii) && ~actualDecrease(jj,ii)
             disp(['No cost decrease, (i,j) = (' num2str(ii), ',' num2str(jj), ')'])
