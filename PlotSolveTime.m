@@ -1,17 +1,45 @@
-function data = PlotSolveTime( phiType, lpModel, scens )
+function data = PlotSolveTime( varargin )
 %PlotSolveTime Plot time required to solve a phi-divergence problem vs
 %number of scenarios
+%
+% Keyword arguments:
+%    lp: LPModel object
+%    phi: PhiDivergence object or string type of phi-divergence
+%    scens: vector giving number of scenarios to time solution against
 
-phi = PhiDivergence( phiType );
+if mod(length(varargin),2) == 1
+    error('Arguments must be key, value pairs')
+end
+
+for vv = 1:2:length(varargin)
+    key = varargin{vv};
+    value = varargin{vv+1};
+    switch key
+        case 'lp'
+            lp = value;
+        case 'phi'
+            if isa(value, 'PhiDivergence')
+                phi = value;
+            elseif ischar(value)
+                phi = PhiDivergence( value );
+            else
+                error('Phi must be PhiDivergence object or string')
+            end
+        case 'scens'
+            scens = value;
+        otherwise
+            error(['Unknown variable ', key])
+    end
+end
 
 data = struct;
 
 for ii = 1:length(scens)
-    lp = PruneScenarios( lpModel, 1:scens(ii) );
+    lpPruned = PruneScenarios( lp, 1:scens(ii) );
     obs = ones(1,scens(ii));
     
     timeStart = tic;
-    [solvedLRLP,c1,n1] = SolveLRLP( lp, phi, obs, -1 );
+    [solvedLRLP,c1,n1] = SolveLRLP( lpPruned, phi, obs, -1 );
     timeIndiv = toc(timeStart);
     
     x1 = solvedLRLP.bestSolution.X;
