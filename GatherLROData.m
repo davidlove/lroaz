@@ -6,6 +6,7 @@ function GatherLROData( varargin )
 %    phi*: PhiDivergence object or string defining the phi-divergence
 %    lp: LPModel object defining the SLP-2
 %    obs: vector of observations numbers of the scenarios
+%    restart: true if restarting from previously saved results
 %    savefile: String or file object denoting the file to save data to
 
 % -------------------------------------------------------------------
@@ -34,6 +35,8 @@ for vv = 1:2:length(varargin)
             else
                 error('Phi must be PhiDivergence object or string')
             end
+        case 'restart'
+            restart = value;
         case 'savefile'
             saveFileName = value;
         otherwise
@@ -61,6 +64,9 @@ end
 if ~exist('obs', 'var')
     obs = ones(1,lp.numScenarios);
 end
+if ~exist('restart', 'var')
+    restart = false;
+end
 if ~exist('savefile', 'var')
     saveFileName = 'saved_variables.mat';
 end
@@ -86,16 +92,26 @@ end
 if isinf(phi.limit) && any(obs == 0)
     error(['Phi divergence ' phi.divergence ' does not allow poping up probabilities'])
 end
+if restart ~= true && restart ~= false
+    error('restart must be a boolean value')
+end
 
 % -------------------------------------------------------------------
 % -------------------------------------------------------------------
 
-alpha = 10.^linspace(-2.93,0,50);
-alpha(end) = mean(alpha(end-1:end));
-rho = phi.SecondDerivativeAt1() / (2*sum(obs)) * ...
-    chi2inv(1-alpha,lp.numScenarios - 1);
+if ~restart
+    alpha = 10.^linspace(-2.93,0,50);
+    alpha(end) = mean(alpha(end-1:end));
+    rho = phi.SecondDerivativeAt1() / (2*sum(obs)) * ...
+        chi2inv(1-alpha,lp.numScenarios - 1);
+    
+    iiSet = 1:length(rho);
+else
+    load( saveFileName );
+    
+    iiSet = find( max(pWorst) == 0 );
+end
 
-iiSet = 1:length(rho);
 
 for ii = iiSet
     timeStart = tic;
