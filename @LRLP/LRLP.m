@@ -311,7 +311,7 @@ classdef LRLP < handle
             obj.candidateSolution.SetTheta( currentCandidate(obj.THETA), 'master' )
             
             % If Matlab fails to find an optimal solution, whether it
-            % recongnizes it (bet setting exitFlag < 1) or  not (by not
+            % recongnizes it (by setting exitFlag < 1) or  not (by not
             % beating bestSolution), return immediately and let the program
             % controlling LRLP handle it.
             if exitFlag ~= 1 || ...
