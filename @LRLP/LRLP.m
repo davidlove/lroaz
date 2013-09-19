@@ -50,6 +50,7 @@ classdef LRLP < handle
         trustRegionUpper
         trustRegionRho
         optimizerOptions
+        lambdaLowerBound
     end
     
     %     LRLP Solution Parameters
@@ -208,6 +209,8 @@ classdef LRLP < handle
             cols = size(obj.lpModel.A,2);
             x0 = x0(1:cols);
             
+            obj.lambdaLowerBound = 1e-6;
+            
             obj.objectiveScale = 1;
             
             obj.trustRegionSize = 1*max(abs(x0));
@@ -302,7 +305,8 @@ classdef LRLP < handle
             end
             
             if currentCandidate(obj.LAMBDA) < lMaster(obj.LAMBDA)
-                currentCandidate(obj.LAMBDA) = lMaster(obj.LAMBDA);
+%                 currentCandidate(obj.LAMBDA) = lMaster(obj.LAMBDA);
+                obj.lambdaLowerBound = obj.lambdaLowerBound * 1e-3;
             end
             
             obj.candidateSolution.SetX( currentCandidate(1:end-2-length(obj.THETA)) )
@@ -602,6 +606,14 @@ classdef LRLP < handle
             lambdaLocal = obj.candidateSolution.Lambda;
             muLocal = obj.candidateSolution.Mu;
             
+            lambdaZero = false;
+            if lambdaLocal == 0
+                lambdaZero = true;
+                lower = obj.GetMasterl();
+                obj.candidateSolution.SetLambda(lower(obj.LAMBDA));
+                lambdaLocal = obj.candidateSolution.Lambda;
+            end
+            
             intermediateSlope = zeros(obj.lpModel.numScenarios, size(obj.lpModel.A,2)+2);
             
             s = obj.candidateSolution.S();
@@ -628,6 +640,10 @@ classdef LRLP < handle
             obj.objectiveCutsMatrix = [obj.objectiveCutsMatrix; ...
                                        sparse([slope, -eye(length(obj.THETA))])];
             obj.objectiveCutsRHS = [obj.objectiveCutsRHS; -intercept];
+            
+            if lambdaZero
+                obj.candidateSolution.SetLambda( 0 );
+            end
         end
         
         % GenerateFeasibilityCut generates a feasibility cut and adds it to
@@ -801,7 +817,7 @@ classdef LRLP < handle
         % GetMasterl gets the lower bound for the master problem
         function lOut = GetMasterl( obj )
             lOut = [obj.lpModel.l; 0; 0; 0];
-            lOut(obj.LAMBDA) = obj.bestSolution.Lambda / 100;
+            lOut(obj.LAMBDA) = obj.lambdaLowerBound;
             lOut(obj.MU) = -Inf;
             lOut(obj.THETA) = -Inf;
             
