@@ -208,7 +208,15 @@ classdef Solution < matlab.mixin.Copyable
         end
         
         function outS = S( self )
-            outS = (self.secondStageValues - self.mu) / self.lambda;
+            if self.lambda ~= 0
+                outS = (self.secondStageValues - self.mu) / self.lambda;
+            else
+                relDiff = (self.secondStageValues - self.mu) / abs(self.mu);
+                outS = zeros(size(self.secondStageValues));
+                tol = 1e-6;
+                outS(relDiff < -tol) = -Inf;
+                outS(relDiff > tol) = Inf;
+            end
         end
         
         function outL = Limit( self )
