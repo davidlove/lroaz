@@ -30,9 +30,8 @@ s.SetMu(m);
 s.SetTheta(th,'master');
 assertEqual( s.Limit, phi.limit )
 
-% Not allowed to set X or Lambda a second time
+% Not allowed to set X a second time
 assertExceptionThrown( @() s.SetX(1), 'Solution:SetX:setagain' )
-assertExceptionThrown( @() s.SetLambda(5), 'Solution:SetLambda:setagain' )
 
 % Give trust region a non-logical
 assertExceptionThrown( @() s.SetTrustRegionInterior( 2 ), ...

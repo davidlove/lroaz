@@ -80,9 +80,7 @@ classdef Solution < matlab.mixin.Copyable
         end
         
         function SetLambda( self, inLambda )
-            if ~isempty(self.lambda)
-                error('Solution:SetLambda:setagain', 'Lambda has already been set')
-            elseif numel(inLambda) ~= 1
+            if numel(inLambda) ~= 1
                 error( 'Solution:SetLambda:size', ...
                     ['Lambda has size ' num2str(numel(inLambda)) ...
                     ', must have size 1'] )
