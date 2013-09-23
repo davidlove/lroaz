@@ -4,9 +4,11 @@ function GatherLROData( varargin )
 %
 % Keyword arguments (*required arguments):
 %    phi*: PhiDivergence object or string defining the phi-divergence
+%    alpha: Asymptotical confidence levels.  Conflicts with rho
 %    lp: LPModel object defining the SLP-2
 %    obs: vector of observations numbers of the scenarios
 %    restart: true if restarting from previously saved results
+%    rho: Confidence region size rho.  Conflicts with alpha
 %    savefile: String or file object denoting the file to save data to
 
 % -------------------------------------------------------------------
@@ -14,6 +16,8 @@ function GatherLROData( varargin )
 % -------------------------------------------------------------------
 
 requiredArgs = {'phi'};
+
+artag = false;
 
 if mod(length(varargin),2) == 1
     error('Arguments must be key, value pairs')
@@ -23,6 +27,14 @@ for vv = 1:2:length(varargin)
     key = varargin{vv};
     value = varargin{vv+1};
     switch key
+        case 'alpha'
+            if artag
+                error('Only accepts one of alpha, rho')
+            elseif exist('restart', 'var') && restart
+                warning('Restarting ignores alpha and rho')
+            end
+            artag = true;
+            alpha = value;
         case 'lp'
             lp = value;
         case 'obs'
@@ -37,6 +49,14 @@ for vv = 1:2:length(varargin)
             end
         case 'restart'
             restart = value;
+        case 'rho'
+            if artag
+                error('Only accepts one of alpha, rho')
+            elseif exist('restart', 'var') && restart
+                warning('Restarting ignores alpha and rho')
+            end
+            artag = true;
+            rho = value;
         case 'savefile'
             saveFileName = value;
         otherwise
@@ -71,6 +91,24 @@ if ~exist('savefile', 'var')
     saveFileName = 'saved_variables.mat';
 end
 
+if ~restart
+    if ~exist('rho', 'var')
+        if ~exist('alpha', 'var')
+            alpha = 10.^linspace(-2.93,0,50);
+            alpha(end) = mean(alpha(end-1:end));
+        end
+        rho = phi.Rho(alpha, obs);
+    elseif ~exist('alpha', 'var')
+        alpha = phi.Alpha(rho, obs);
+    end
+    
+    iiSet = 1:length(rho);
+else
+    load( saveFileName );
+    
+    iiSet = find( max(pWorst) == 0 );
+end
+
 % -------------------------------------------------------------------
 % Required Variables
 % -------------------------------------------------------------------
@@ -99,18 +137,6 @@ end
 % -------------------------------------------------------------------
 % -------------------------------------------------------------------
 
-if ~restart
-    alpha = 10.^linspace(-2.93,0,50);
-    alpha(end) = mean(alpha(end-1:end));
-    rho = phi.SecondDerivativeAt1() / (2*sum(obs)) * ...
-        chi2inv(1-alpha,lp.numScenarios - 1);
-    
-    iiSet = 1:length(rho);
-else
-    load( saveFileName );
-    
-    iiSet = find( max(pWorst) == 0 );
-end
 
 
 for ii = iiSet

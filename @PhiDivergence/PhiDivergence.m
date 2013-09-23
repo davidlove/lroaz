@@ -109,6 +109,11 @@ classdef PhiDivergence < handle
             rho = obj.SecondDerivativeAt1() / (2*sum(obs)) * ...
                 chi2inv(1-alpha,length(obs) - 1);
         end
+        
+        function alpha = Alpha( obj, rho, obs )
+            alpha = 1-chi2cdf(2*sum(obs)/obj.SecondDerivativeAt1() * rho, ...
+                length(obs)-1);
+        end
     end
 end
 
