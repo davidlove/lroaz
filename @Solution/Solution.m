@@ -117,7 +117,7 @@ classdef Solution < matlab.mixin.Copyable
             obj.numVariables = size(lp.A,2);            
             obj.numScen = lp.numScenarios;
             obj.phiLimit = min( phi.limit, phi.computationLimit );
-            obj.isObserved = obs > 0;
+            obj.isObserved = obs(:) > 0;
             
             switch cutType
                 case 'single'
@@ -192,7 +192,9 @@ classdef Solution < matlab.mixin.Copyable
                 % NOTE: Strict inequality is required for most phi
                 % divergences, but variationdistance allows for
                 % <= phiLimit.
-                self.muFeasible = all(self.S() <= (1 + 1e-6)*self.phiLimit);
+                tolerBound = 1e-6 * max(self.phiLimit, 1);
+                self.muFeasible = all(self.S() <= self.phiLimit ...
+                    + ~self.isObserved*tolerBound);
             end
         end
         
