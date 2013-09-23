@@ -150,7 +150,8 @@ classdef LRLP < handle
             obj.SCALE_UP = 1;
             obj.SCALE_DOWN = 2;
             
-            obj.candidateSolution = Solution( obj.lpModel, obj.phi, inCutType );
+            obj.candidateSolution = Solution( 'lp',obj.lpModel, 'phi',obj.phi, ...
+                'obs',obj.numObsPerScen, 'cuttype',inCutType );
             obj.InitializeBenders();
             
             obj.trustRegionMinSize = obj.trustRegionSize / 10;

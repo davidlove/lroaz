@@ -2,7 +2,8 @@ function TestSolution()
 
 lp = InitializeSimpleTwoStageLP;
 phi = PhiDivergence('burg');
-s = Solution(lp,phi,'multi');
+obs = ones(1,lp.numScenarios);
+s = Solution('lp',lp, 'phi',phi, 'obs',obs, 'cuttype','multi');
 
 % Size errors for all variables
 assertExceptionThrown( @() s.SetX(zeros(size(lp.A,2)+1,1)), ...
@@ -113,7 +114,7 @@ assertTrue( s.MuFeasible )
 
 % Test single cut version
 
-t = Solution( lp, phi, 'single' );
+t = Solution( 'lp',lp, 'phi',phi, 'obs',obs, 'cuttype','single' );
 
 assertExceptionThrown( @() t.SetTheta(zeros(2,1),'master'), ...
     'Solution:SetTheta:size' )

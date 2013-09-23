@@ -1,10 +1,3 @@
-% Solution stores a solution to an LRLP problem.  Solution store:
-% * Value of all variables
-% * thetas of the master and true problem
-% * Dual values for the second stage problems
-% * Whether mu was initially feasible
-% * Whether the solution was in the trust region interior
-
 classdef Solution < matlab.mixin.Copyable
     
     properties (GetAccess=private, SetAccess=private)
@@ -23,6 +16,7 @@ classdef Solution < matlab.mixin.Copyable
         numScen
         numTheta
         phiLimit
+        isObserved
     end
     
     % Enumeration properties
@@ -35,16 +29,84 @@ classdef Solution < matlab.mixin.Copyable
     
     methods (Access=public)
         
-        function obj = Solution( lp, phi, cutType )
-            if nargin < 3
-                cutType = 'single';
+        function obj = Solution( varargin )
+            % Solution stores a solution to an LRLP problem.  Solution store:
+            % * Value of all variables
+            % * thetas of the master and true problem
+            % * Dual values for the second stage problems
+            % * Whether mu was initially feasible
+            % * Whether the solution was in the trust region interior
+            %
+            % Keyword arguments (*required arguments):
+            %    lp*: LPModel object defining the SLP-2
+            %    phi*: PhiDivergence object or string defining the phi-divergence
+            %    cuttype: 'single' cut or 'multi' cut
+            
+            % -------------------------------------------------------------------
+            % Input Parsing
+            % -------------------------------------------------------------------
+            
+            requiredArgs = {'lp', 'obs', 'phi'};
+            
+            if mod(length(varargin),2) == 1
+                error('Arguments must be key, value pairs')
             end
-            if ~isa( lp, 'LPModel' )
-                error('Solution must be initialized with an LPModel');
+            
+            for vv = 1:2:length(varargin)
+                key = varargin{vv};
+                value = varargin{vv+1};
+                switch key
+                    case 'cuttype'
+                        cutType = value;
+                    case 'lp'
+                        lp = value;
+                    case 'obs'
+                        obs = value;
+                    case 'phi'
+                        if isa(value, 'PhiDivergence')
+                            phi = value;
+                        elseif ischar(value)
+                            phi = PhiDivergence( value );
+                        else
+                            error('Phi must be PhiDivergence object or string')
+                        end
+                    otherwise
+                        error(['Unknown variable ', key])
+                end
             end
-            if ~isa( phi, 'PhiDivergence' )
-                error('Solution must be initialized with a PhiDivergence');
+            
+            % -------------------------------------------------------------------
+            % Default variable assignments
+            % -------------------------------------------------------------------
+            
+            if ~exist('cutType', 'var')
+                cutType = 'multi';
             end
+            
+            % -------------------------------------------------------------------
+            % Required Variables
+            % -------------------------------------------------------------------
+            
+            for aa = requiredArgs
+                if ~exist(aa{1}, 'var')
+                    error([aa{1}, ' is required but not defined'])
+                end
+            end
+            
+            % -------------------------------------------------------------------
+            % Value Checking
+            % -------------------------------------------------------------------
+            
+            if ~isa(lp, 'LPModel')
+                error('lp must be an LPModel object')
+            end
+            
+            if ~ismember( cutType, {'single','multi'} )
+                error([cutType ' is not a valid cut type'])
+            end
+            
+            % -------------------------------------------------------------------
+            % -------------------------------------------------------------------
             
             obj.MASTER = 1;
             obj.TRUE = 2;
@@ -55,6 +117,7 @@ classdef Solution < matlab.mixin.Copyable
             obj.numVariables = size(lp.A,2);            
             obj.numScen = lp.numScenarios;
             obj.phiLimit = min( phi.limit, phi.computationLimit );
+            obj.isObserved = obs > 0;
             
             switch cutType
                 case 'single'
