@@ -201,6 +201,10 @@ classdef LRLP < handle
 %                         [], [], ...
 %                         obj.lpModel.A, obj.lpModel.b, ...
 %                         obj.lpModel.l, obj.lpModel.u);
+                    logFile = 'clone1.log';
+                    if exist(logFile, 'file')==2
+                        delete(logFile);
+                    end
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
@@ -287,6 +291,10 @@ classdef LRLP < handle
                         AMaster, bMaster, ...
                         lMaster, uMaster, ...
                         [], obj.optimizerOptions );
+                    logFile = 'clone1.log';
+                    if exist(logFile, 'file')==2
+                        delete(logFile);
+                    end
                     
                     % exitFlag = 5 indicates an optimal solution found, but
                     % with scaling issues.  Set exitFlag = 1, and hope
@@ -585,6 +593,10 @@ classdef LRLP < handle
                         D, d + B*xLocal, ...
                         l, u, ...
                         [], []);
+                    logFile = 'clone1.log';
+                    if exist(logFile, 'file')==2
+                        delete(logFile);
+                    end
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
