@@ -87,7 +87,7 @@ end
 if ~exist('restart', 'var')
     restart = false;
 end
-if ~exist('savefile', 'var')
+if ~exist('saveFileName', 'var')
     saveFileName = 'saved_variables.mat';
 end
 
