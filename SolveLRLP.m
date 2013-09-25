@@ -117,6 +117,10 @@ while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
                 lrlp.DoubleIterations;
             case {-2,-3,-4,-5}
                 % Do nothing extra
+            case 5
+                % exitFlag = 5 indicates, for CPLEX, that an optimal 
+                % solution was found found, but with scaling issues.
+                % No additional actions will be taken
             case -50
                 % The optimizer failed to find a solution better than
                 % lrlp.bestSolution

@@ -295,14 +295,6 @@ classdef LRLP < handle
                     if exist(logFile, 'file')==2
                         delete(logFile);
                     end
-                    
-                    % exitFlag = 5 indicates an optimal solution found, but
-                    % with scaling issues.  Set exitFlag = 1, and hope
-                    % CPLEX does better soon.
-                    if exitFlag == 5
-                        warning('wrn:exitflag', 'Changing exitFlag from 5 to 1')
-                        exitFlag = 1;
-                    end
                 otherwise
                     error(['Optimizer ' obj.optimizer ' is not defined'])
             end
