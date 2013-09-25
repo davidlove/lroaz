@@ -35,13 +35,16 @@ classdef PhiDivergence < handle
                     obj.phi2Derivative = @(t) 1./(t.^2);
                     obj.limit = 1;
                 case 'kl'
-                    obj.func = @(t) t.*log(t) - t + 1;
+                    % include realmin to prevent 0*log(0) from evaluating
+                    % as NaN.
+                    obj.func = @(t) t.*log(max(t,realmin)) - t + 1;
                     obj.conjugate = @(s) exp(s) - 1;
                     obj.conjugateDerivative = @(s) exp(s);
                     obj.phi2Derivative = @(t) 1./t;
                     obj.limit = Inf;
                 case 'chi2'
-                    obj.func = @(t) (t-1).^2./t;
+                    % abs(t) prevents getting -Inf when t == 0
+                    obj.func = @(t) (t-1).^2./abs(t);
                     obj.conjugate = @(s) 2 - 2*sqrt(1-s);
                     obj.conjugateDerivative = @(s) 1./sqrt(1-s);
                     obj.phi2Derivative = @(t) 2./t^3;

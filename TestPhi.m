@@ -24,6 +24,8 @@ if isfinite(phi.limit)
     assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'lro' )
+assertEqual( phi.Contribution(0,1), Inf )
+assertEqual( phi.Contribution(1,0), 0 )
 
 % Burg Entropy:
 %  conjugate  = -log(1-s)
@@ -42,6 +44,8 @@ if isfinite(phi.limit)
     assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'burg' )
+assertEqual( phi.Contribution(0,1), Inf )
+assertEqual( phi.Contribution(1,0), 1 )
 
 % Kullback-Leibler:
 %  conjugate  = exp(s) - 1
@@ -63,6 +67,8 @@ phi.SetComputationLimit(q,rho)
 assertElementsAlmostEqual( rho, min(q)/sum(q)*...
     phi.Contribution(phi.ConjugateDerivative(phi.computationLimit),1) )
 assertEqual( phi.divergence, 'kl' )
+assertEqual( phi.Contribution(0,1), 1 )
+assertEqual( phi.Contribution(1,0), Inf )
 
 % Chi^2:
 %  conjugate  = 2 - 2sqrt(1-s)
@@ -81,6 +87,8 @@ if isfinite(phi.limit)
     assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'chi2' )
+assertEqual( phi.Contribution(0,1), Inf )
+assertEqual( phi.Contribution(1,0), 1 )
 
 % Modified Chi^2:
 %  conjugate  = -1 for s < -2,  s+s^2/4 for s >= -2
@@ -104,6 +112,8 @@ phi.SetComputationLimit(q,rho)
 assertElementsAlmostEqual( rho, min(q)/sum(q)*...
     phi.Contribution(phi.ConjugateDerivative(phi.computationLimit),1) )
 assertEqual( phi.divergence, 'mchi2' )
+assertEqual( phi.Contribution(0,1), 1 )
+assertEqual( phi.Contribution(1,0), Inf )
 
 % Hellinger Distance:
 %  conjugate  = s/(1-s)
@@ -122,6 +132,8 @@ if isfinite(phi.limit)
     assertTrue( isinf(testLimits(2)) )
 end
 assertEqual( phi.divergence, 'hellinger' )
+assertEqual( phi.Contribution(0,1), 1 )
+assertEqual( phi.Contribution(1,0), 1 )
 
 % Test error for unknown phi
 assertExceptionThrown( @() PhiDivergence( 'fakey-super-made-up' ), ...
