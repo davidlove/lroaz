@@ -26,6 +26,8 @@ end
 assertEqual( phi.divergence, 'lro' )
 assertEqual( phi.Contribution(0,1), Inf )
 assertEqual( phi.Contribution(1,0), 0 )
+assertEqual( phi.Conjugate(-Inf), -Inf )
+assertEqual( phi.ConjugateDerivative(-Inf), 0 )
 
 % Burg Entropy:
 %  conjugate  = -log(1-s)
@@ -46,6 +48,8 @@ end
 assertEqual( phi.divergence, 'burg' )
 assertEqual( phi.Contribution(0,1), Inf )
 assertEqual( phi.Contribution(1,0), 1 )
+assertEqual( phi.Conjugate(-Inf), -Inf )
+assertEqual( phi.ConjugateDerivative(-Inf), 0 )
 
 % Kullback-Leibler:
 %  conjugate  = exp(s) - 1
@@ -69,6 +73,8 @@ assertElementsAlmostEqual( rho, min(q)/sum(q)*...
 assertEqual( phi.divergence, 'kl' )
 assertEqual( phi.Contribution(0,1), 1 )
 assertEqual( phi.Contribution(1,0), Inf )
+assertEqual( phi.Conjugate(-Inf), -1 )
+assertEqual( phi.ConjugateDerivative(-Inf), 0 )
 
 % Chi^2:
 %  conjugate  = 2 - 2sqrt(1-s)
@@ -89,6 +95,8 @@ end
 assertEqual( phi.divergence, 'chi2' )
 assertEqual( phi.Contribution(0,1), Inf )
 assertEqual( phi.Contribution(1,0), 1 )
+assertEqual( phi.Conjugate(-Inf), -Inf )
+assertEqual( phi.ConjugateDerivative(-Inf), 0 )
 
 % Modified Chi^2:
 %  conjugate  = -1 for s < -2,  s+s^2/4 for s >= -2
@@ -114,6 +122,8 @@ assertElementsAlmostEqual( rho, min(q)/sum(q)*...
 assertEqual( phi.divergence, 'mchi2' )
 assertEqual( phi.Contribution(0,1), 1 )
 assertEqual( phi.Contribution(1,0), Inf )
+assertEqual( phi.Conjugate(-Inf), -1 )
+assertEqual( phi.ConjugateDerivative(-Inf), 0 )
 
 % Hellinger Distance:
 %  conjugate  = s/(1-s)
@@ -134,6 +144,8 @@ end
 assertEqual( phi.divergence, 'hellinger' )
 assertEqual( phi.Contribution(0,1), 1 )
 assertEqual( phi.Contribution(1,0), 1 )
+assertEqual( phi.Conjugate(-Inf), -1 )
+assertEqual( phi.ConjugateDerivative(-Inf), 0 )
 
 % Test error for unknown phi
 assertExceptionThrown( @() PhiDivergence( 'fakey-super-made-up' ), ...

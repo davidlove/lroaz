@@ -51,13 +51,14 @@ classdef PhiDivergence < handle
                     obj.limit = 1;
                 case 'mchi2'
                     obj.func = @(t) (t-1).^2;
-                    obj.conjugate = @(s) (-1).*(s < -2) + (s+s.^2/4).*(s >= -2);
-                    obj.conjugateDerivative = @(s) (1+s/2).*(s >= -2);
+                    obj.conjugate = @(s) (-1).*(s < -2) + ...
+                        (max(s,-2)+max(s,-2).^2/4).*(s >= -2);
+                    obj.conjugateDerivative = @(s) (1+max(s,-2)/2).*(s >= -2);
                     obj.phi2Derivative = @(t) 2;
                     obj.limit = Inf;
                 case 'hellinger'
                     obj.func = @(t) (sqrt(t)-1).^2;
-                    obj.conjugate = @(s) s./(1-s);
+                    obj.conjugate = @(s) max(s,-realmax)./(1-max(s,-realmax));
                     obj.conjugateDerivative = @(s) 1./((s-1).^2);
                     obj.phi2Derivative = @(t) 1./(2*t^(3/2));
                     obj.limit = 1;
