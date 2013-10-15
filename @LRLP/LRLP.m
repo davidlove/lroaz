@@ -306,7 +306,13 @@ classdef LRLP < handle
             end
             
             if currentCandidate(obj.LAMBDA) < lMaster(obj.LAMBDA)
-%                 currentCandidate(obj.LAMBDA) = lMaster(obj.LAMBDA);
+                % If not a suppressing distribution, enforce lower bound on
+                % lambda
+                if obj.phi.Conjugate(-Inf) == -Inf
+                    currentCandidate(obj.LAMBDA) = lMaster(obj.LAMBDA);
+                elseif currentCandidate(obj.LAMBDA) < 0
+                    currentCandidate(obj.LAMBDA) = 0;
+                end
                 obj.lambdaLowerBound = obj.lambdaLowerBound * 1e-3;
             end
             
