@@ -7,6 +7,8 @@ function [b1,UB1,LB1,Cost1,b2,UB2,LB2,Cost2,costOut] = BuildVectors(obj, cellInp
 
 numFiles = length(cellInputFile);
 
+obj.demandMultiplier = zeros(1, numFiles);
+
 % Read input files into three-dimensional arrays
 costVector = ReadInput(obj, cellInputFile, 'Costs');
 lb = ReadInput(obj, cellInputFile, 'Lower Bounds');
@@ -62,6 +64,71 @@ ub = ub(:,1:obj.timePeriods,:);
 lb = lb(:,1:obj.timePeriods,:);
 RHS = RHS(:,1:obj.timePeriods,:);
 
+% ------------------------------------------------
+% Determine population by zone, year, and scenario
+% ------------------------------------------------
+
+% Determine zone names
+zoneLocs = regexp(obj.Nr, '^DemP_.{1,2}$');
+zoneLocs = find(~cellfun(@isempty, zoneLocs));
+obj.zoneNames = cell(1, length(zoneLocs));
+for ii = 1:length(obj.zoneNames)
+    str = obj.Nr{zoneLocs(ii)};
+    obj.zoneNames{ii} = str(6:end);
+end
+
+% Fill in population data
+obj.population = zeros(length(obj.zoneNames), obj.timePeriods, numFiles);
+for zz=1:length(obj.zoneNames)
+    for ff = 1:numFiles
+        zoneLoc = regexp(obj.Nr, strcat('^DemN?P_', obj.zoneNames{zz}, '$'));
+        zoneLoc = ~cellfun(@isempty, zoneLoc);
+        obj.population(zz,:,ff) = sum(RHS(zoneLoc,:,ff)) ...
+            / (obj.averagePerCapitaDemand * obj.demandMultiplier(ff));
+        
+        pLoc = regexp(obj.Nr, strcat('^DemP_', obj.zoneNames{zz}, '$'));
+        pLoc = ~cellfun(@isempty, pLoc);
+        if isempty(obj.fractionDemandP)
+            obj.fractionDemandP = mean(RHS(pLoc,:,ff) ./ sum(RHS(zoneLoc,:,ff)));
+        else
+            if mean(RHS(pLoc,:,ff) ./ sum(RHS(zoneLoc,:,ff))) - obj.fractionDemandP ...
+                    > 1e-6 * obj.fractionDemandP
+                error('Fraction demand is not constant')
+            end
+        end
+    end
+end
+
+if obj.numProfiles > 1
+    ubmod = repmat(ub,[1,1,obj.numProfiles]);
+    lbmod = repmat(lb,[1,1,obj.numProfiles]);
+    costmod = repmat(costVector,[1,1,obj.numProfiles]);
+    rhsmod = repmat(RHS,[1,1,obj.numProfiles]);
+    for pp = 1:obj.numProfiles
+        for ff = 1:numFiles
+            for zz = 1:length(obj.zoneNames)
+                for tt = 1:obj.timePeriods
+                    ii = sub2ind([numFiles, obj.numProfiles], ff, pp);
+                    potDemLoc = regexp(obj.Nr, strcat('^DemP_', obj.zoneNames{zz}, '$'));
+                    potDemLoc = ~cellfun(@isempty, potDemLoc);
+                    nonpotDemLoc = regexp(obj.Nr, strcat('^DemNP_', obj.zoneNames{zz}, '$'));
+                    nonpotDemLoc = ~cellfun(@isempty, nonpotDemLoc);
+                    rhsmod(potDemLoc,tt,ii) = obj.fractionDemandP ...
+                        * obj.gpd2afy * obj.GPPD(pp,tt) ...
+                        * obj.population(zz,tt,ff);
+                    rhsmod(nonpotDemLoc,tt,ii) = (1-obj.fractionDemandP) ...
+                        * obj.gpd2afy * obj.GPPD(pp,tt) ...
+                        * obj.population(zz,tt,ff);
+                end
+            end
+        end
+    end
+    ub = ubmod;
+    lb = lbmod;
+    costVector = costmod;
+    RHS = rhsmod;
+end
+
 % Decompose into two stages
 [b1,b2] = DecomposeStages(obj, RHS, true);
 [UB1, UB2] = DecomposeStages(obj, ub, true);
@@ -80,6 +147,20 @@ switch sheet
         prediction = obj.variableNames;
     case 'b_vec'
         prediction = obj.Nr;
+        
+        % Fill in the per capita demand multiplier
+        for ii = 1:numFiles
+            demandType = xlsread(cellInputFile{ii}, 'Supply', 'D10');
+            switch demandType
+                case 1
+                    obj.demandMultiplier(ii) = 1.1;
+                case 2
+                    obj.demandMultiplier(ii) = 0.9;
+                otherwise
+                    error(['Cell D10 of Supply should be 1 or 2, is ', ...
+                        num2str(demandType)])
+            end
+        end
     otherwise
         error(['Unassigned sheet name ', sheet])
 end

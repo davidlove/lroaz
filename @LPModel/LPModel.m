@@ -26,7 +26,7 @@ classdef LPModel < handle
         B
     end
     
-%     Properties of the LP Model
+%     Properties of the LP Water Model
     properties (GetAccess=public, SetAccess=immutable)
         numStages
         numScenarios
@@ -35,10 +35,22 @@ classdef LPModel < handle
         timeLag
         firstStagePeriods
         folderCellArray
+        numProfiles
+        GPPD
+        averagePerCapitaDemand
+        gpd2afy
+    end
+    
+%     Properties for expanding the scenario set
+    properties (Access=public)
+        zoneNames
+        population
+        demandMultiplier
+        fractionDemandP
     end
     
 %     Leftover properties
-    properties (Access=private)
+    properties %(Access=private)
         Abase
         A_st
         A_lag
@@ -93,17 +105,37 @@ classdef LPModel < handle
                         obj.firstStagePeriods = obj.timePeriods;
                         [obj.y, obj.Fs] = wavread([obj.folderCellArray{1} 'bell']);
                         
+                        % Average per capita demand is 135 gallons per day,
+                        % converted to acre-feet per year
+                        obj.gpd2afy = 0.00112;
+                        obj.averagePerCapitaDemand = 135 * obj.gpd2afy;
+                        
                         obj.GenerateDataFromExcel;
                 end
             elseif iscellstr(varargin{1})
                 obj.folderCellArray = varargin{1};
                 obj.numStages = 2;
-                obj.numScenarios = length(obj.folderCellArray);
                 obj.numYears = varargin{2};
                 obj.timeLag = varargin{3};
                 obj.timePeriods = obj.numYears * obj.timeLag;
                 obj.firstStagePeriods = varargin{4} * obj.timeLag;
                 [obj.y, obj.Fs] = wavread([obj.folderCellArray{1} 'bell']);
+                
+                if length(varargin) > 4
+                    if length(varargin) < 6
+                        error('Need both number of profiles, and profile function')
+                    end
+                    obj.numProfiles = varargin{5};
+                    obj.GPPD = varargin{6};
+                else
+                    obj.numProfiles = 1;
+                end
+                obj.numScenarios = length(obj.folderCellArray) * obj.numProfiles;
+                        
+                % Average per capita demand is 135 gallons per day,
+                % converted to acre-feet per year
+                obj.gpd2afy = 0.00112;
+                obj.averagePerCapitaDemand = 135 * obj.gpd2afy;
                 
                 obj.SetBlankSecondStage;
                 obj.GenerateDataFromExcel;
