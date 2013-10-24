@@ -199,9 +199,10 @@ for ii=1:numFiles
     stageOne(:,ii) = stage1Temp(:);
     stage2Temp = matrix(:,obj.firstStagePeriods+1:end,ii);
     if ii > 1 && adjust
+        index = matrix(:,1,1) < Inf;
         for jj=1:size(stage2Temp,2)
-            stage2Temp(:,jj) = stage2Temp(:,jj) ...
-                - matrix(:,obj.firstStagePeriods,ii) + matrix(:,obj.firstStagePeriods,1);
+            stage2Temp(index,jj) = stage2Temp(index,jj) ...
+                - matrix(index,obj.firstStagePeriods,ii) + matrix(index,obj.firstStagePeriods,1);
         end
     end
     if ii == 1
