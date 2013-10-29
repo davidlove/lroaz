@@ -1,0 +1,7 @@
+This folder contains severl R scripts for projecting demand for water in Tucson.
+
+The script to run to generate data is create_grid.R.  This will create an R
+data frame that contains projected demand in GPCD for the models selected in
+model_selection.R.  This data frame should then be saved with write.csv as
+described in create_grid.R
+  
