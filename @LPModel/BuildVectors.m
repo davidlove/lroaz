@@ -54,6 +54,20 @@ if obj.timeLag ~= 1
     end
 end
 
+% Remove the loss variables and associated constraints
+if obj.numStages > 1
+    numUsers = length(lb) - size(obj.A,2)/obj.firstStagePeriods;
+    assert(isequal( lb(end-numUsers+1:end,:,:), zeros(numUsers, obj.timePeriods, numFiles ) ))
+    assert(isequal( ub(end-numUsers+1:end,:,:), Inf(numUsers, obj.timePeriods, numFiles ) ))
+    assert(isequal( costVector(end-numUsers+1:end,:,:), zeros(numUsers, obj.timePeriods, numFiles ) ))
+    assert(isequal( RHS(end-numUsers+1:end,:,:), zeros(numUsers, obj.timePeriods, numFiles ) ))
+    
+    lb(end-numUsers+1:end,:,:) = [];
+    ub(end-numUsers+1:end,:,:) = [];
+    costVector(end-numUsers+1:end,:,:) = [];
+    RHS(end-numUsers+1:end,:,:) = [];
+end
+
 if obj.timePeriods > min([size(costVector,2),size(ub,2),size(lb,2),size(RHS,2)])
     error('Request for more periods than data provides');
 end

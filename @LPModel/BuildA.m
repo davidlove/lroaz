@@ -238,6 +238,18 @@ end
 colNames(end-numUsers+1:end) = rowNames(end-numUsers+1:end);
 obj.variableNames(numArcs+1:end) = colNames(numArcs+1:end)';
 
+% Remove the loss variables, hopefully making the problem numerically
+% easier
+if obj.numStages > 1
+    A(1:numUsers,:) = A(1:numUsers,:) + A((1:numUsers)+numUsers+ST,:);
+    A_st(1:numUsers,:) = A_st(1:numUsers,:) + A_st((1:numUsers)+numUsers+ST,:);
+    A_lag(1:numUsers,:) = A_lag(1:numUsers,:) + A_lag((1:numUsers)+numUsers+ST,:);
+    assert(isequal( A(1:numUsers,end-numUsers+1:end), zeros(numUsers) ));
+    A = A(1:numUsers+ST,1:numVars-numUsers);
+    A_st = A_st(1:numUsers+ST,1:numVars-numUsers);
+    A_lag = A_lag(1:numUsers+ST,1:numVars-numUsers);
+end
+
 A = sparse(A);
 A_st = sparse(A_st);
 A_lag = sparse(A_lag);
