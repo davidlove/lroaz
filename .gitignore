@@ -2,6 +2,10 @@
 ##########################
 *.mat
 
+# R history file #
+##################
+.Rhistory
+
 # Excel directories #
 #####################
 SP\ ?/
