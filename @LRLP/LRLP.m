@@ -154,7 +154,7 @@ classdef LRLP < handle
                 'obs',obj.numObsPerScen, 'cuttype',inCutType );
             obj.InitializeBenders();
             
-            obj.trustRegionMinSize = obj.trustRegionSize / 10;
+            obj.trustRegionMinSize = obj.trustRegionSize / 1e3;
             obj.trustRegionMaxSize = obj.trustRegionSize * Inf;%1000;
             assert( obj.trustRegionMinSize <= obj.trustRegionMaxSize );
         end
