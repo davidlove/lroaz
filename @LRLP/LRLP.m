@@ -326,7 +326,15 @@ classdef LRLP < handle
             % beating bestSolution), return immediately and let the program
             % controlling LRLP handle it.
             if exitFlag ~= 1 || ...
-                    cMaster*(currentBest - currentCandidate) < 0
+                    cMaster*(currentBest - currentCandidate) < -1e-6*cMaster*currentBest
+                disp('-----------------------------------------------')
+                disp('Best solution value:')
+                disp(cMaster*(currentBest))
+                disp('Candidate solution value:')
+                disp(cMaster*(currentCandidate))
+                disp('Difference:')
+                disp(cMaster*(currentBest - currentCandidate))
+                disp('-----------------------------------------------')
                 if exitFlag == 1
                     exitFlag = -50;
                 end
@@ -336,7 +344,7 @@ classdef LRLP < handle
             % Any accepted solution should be better than the previous
             % best.
             assert( exitFlag ~= 1 || ...
-                cMaster * (currentBest - currentCandidate) >= 0, ...
+                cMaster * (currentBest - currentCandidate) >= -1e-6*cMaster*currentBest, ...
                 ['Actual objective drop = ' ...
                 num2str( cMaster * (currentBest - currentCandidate) )])
             
@@ -735,7 +743,7 @@ classdef LRLP < handle
             
             % Infeasible candidate solutions might not produce a predicted
             % drop after they are made feasible
-            assert( ~obj.candidateSolution.MuFeasible || predictedDrop >= 0 )
+            assert( ~obj.candidateSolution.MuFeasible || predictedDrop >= -1e-6*cMaster*initialSolution )
             
             if obj.candidateSolution.MuFeasible
                 if isempty( obj.candidateSolution.TrustRegionInterior )
@@ -743,7 +751,9 @@ classdef LRLP < handle
                         'region interior'])
                 end
                 
-                if trueDrop < obj.trustRegionRhoBound * predictedDrop
+                if predictedDrop <= 1e-6 * cMaster*initialSolution
+                    obj.trustRegionScaled = obj.SCALE_UP;
+                elseif trueDrop < obj.trustRegionRhoBound * predictedDrop
                     obj.trustRegionScaled = obj.SCALE_DOWN;
                 elseif trueDrop > (1-obj.trustRegionRhoBound) * predictedDrop ...
                         && ~obj.candidateSolution.TrustRegionInterior
