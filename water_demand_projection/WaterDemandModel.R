@@ -29,8 +29,8 @@ days.per.month <- c(31,28,31,30,31,30,31,31,30,31,30,31)
 
 Bounded.Year <- function(year)
 {
-  min.year <- 2000
-  max.year <- 2014
+  min.year <- 2004
+  max.year <- 2011
   return(pmin(pmax(year, min.year), max.year))
 }
 
