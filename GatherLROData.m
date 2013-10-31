@@ -145,7 +145,10 @@ for ii = iiSet
     try
         [solvedLRLP,c1,n1] = SolveLRLP( 'lp',lp, 'phi',phi, 'obs',obs, ...
             'rho',rho(ii), 'cuttype','multi' );
-    catch
+    catch err
+        warning('Error detected in SolveLRLP')
+        getReport(err)
+        pause(30)
         continue
     end
     
