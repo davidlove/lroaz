@@ -326,16 +326,17 @@ classdef LRLP < handle
             % beating bestSolution), return immediately and let the program
             % controlling LRLP handle it.
             if exitFlag ~= 1 || ...
-                    cMaster*(currentBest - currentCandidate) < -1e-6*cMaster*currentBest
-                disp('-----------------------------------------------')
-                disp('Best solution value:')
-                disp(cMaster*(currentBest))
-                disp('Candidate solution value:')
-                disp(cMaster*(currentCandidate))
-                disp('Difference:')
-                disp(cMaster*(currentBest - currentCandidate))
-                disp('-----------------------------------------------')
+                    cMaster*(currentBest - currentCandidate) < -1e-4*cMaster*currentBest
                 if exitFlag == 1
+                    disp('-----------------------------------------------')
+                    disp('Best solution value:')
+                    disp(cMaster*(currentBest))
+                    disp('Candidate solution value:')
+                    disp(cMaster*(currentCandidate))
+                    disp('Difference:')
+                    disp([cMaster*(currentBest - currentCandidate), ...
+                          cMaster*(currentBest - currentCandidate) / (cMaster*currentBest)])
+                    disp('-----------------------------------------------')
                     exitFlag = -50;
                 end
                 return
@@ -344,7 +345,7 @@ classdef LRLP < handle
             % Any accepted solution should be better than the previous
             % best.
             assert( exitFlag ~= 1 || ...
-                cMaster * (currentBest - currentCandidate) >= -1e-6*cMaster*currentBest, ...
+                cMaster * (currentBest - currentCandidate) >= -1e-4*cMaster*currentBest, ...
                 ['Actual objective drop = ' ...
                 num2str( cMaster * (currentBest - currentCandidate) )])
             
@@ -744,7 +745,7 @@ classdef LRLP < handle
             
             % Infeasible candidate solutions might not produce a predicted
             % drop after they are made feasible
-            assert( ~obj.candidateSolution.MuFeasible || predictedDrop >= -1e-6*cMaster*initialSolution )
+            assert( ~obj.candidateSolution.MuFeasible || predictedDrop >= -1e-4*cMaster*initialSolution )
             
             if obj.candidateSolution.MuFeasible
                 if isempty( obj.candidateSolution.TrustRegionInterior )
