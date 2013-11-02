@@ -5,6 +5,7 @@ classdef Solution < matlab.mixin.Copyable
         lambda
         mu
         theta
+        secondStageSolutions
         secondStageValues
         secondStageDuals
         muFeasible
@@ -225,6 +226,15 @@ classdef Solution < matlab.mixin.Copyable
             
             self.secondStageDuals{ inScen, type } = inDual(:).';
         end
+        
+        function SetSecondStageSolution( self, inScen, inSol)
+            if inScen < 1 || inScen > self.numScen
+                error( 'Solution:SetSecondStageValue:badscen', ...
+                    ['Scenario number must be between 1 and ' ...
+                    num2str(self.numScen)] )
+            end
+            self.secondStageSolutions{inScen} = inSol;
+        end
             
         function SetTrustRegionInterior( self, inTF )
             if ~isa( inTF, 'logical' )
@@ -247,6 +257,7 @@ classdef Solution < matlab.mixin.Copyable
             
             self.secondStageValues = -Inf( self.numScen, 1 );
             self.secondStageDuals = cell( self.numScen, 2 );
+            self.secondStageSolutions = cell( self.numScen, 1 );
             
             self.muFeasible = [];
             self.trustRegionInterior = [];
@@ -298,6 +309,10 @@ classdef Solution < matlab.mixin.Copyable
         
         function outInt = SecondStageIntercept( self, inScen )
             outInt = self.secondStageDuals{ inScen, self.INTERCEPT };
+        end
+        
+        function outSol = SecondStageSolution( self, inScen )
+            outSol = self.secondStageSolutions{ inScen };
         end
         
         function outTF = MuFeasible( self )

@@ -161,6 +161,10 @@ for ii = iiSet
     s1 = solvedLRLP.bestSolution.SecondStageValues;
     r1 = solvedLRLP.calculatedDivergence;
     z1 = solvedLRLP.ObjectiveValue;
+    y1 = cell(lp.numScenarios, 1);
+    for ss = 1:length(y1)
+        y1{ss} = solvedLRLP.bestSolution.SecondStageSolution(ss);
+    end
     
     if ii==1
         pWorst = zeros(length(p1),length(rho));
@@ -174,6 +178,7 @@ for ii = iiSet
         numProbs = zeros(1,length(rho));
         numCuts = zeros(1,length(rho));
         timeRuns = zeros(1,length(rho));
+        scenSolns = cell(length(y1),length(rho));
     end
     
     pWorst(:,ii) = p1';
@@ -187,9 +192,10 @@ for ii = iiSet
     numProbs(ii) = n1;
     numCuts(ii) = c1;
     timeRuns(ii) = timeIndiv;
+    scenSolns(:,ii) = y1;
     
     save(saveFileName,'rho','pWorst','x','lambda','mu', ...
-        'scenCosts','objVals', ...
+        'scenCosts','scenSolns','objVals', ...
         'calcRho', 'alpha', ...
         'numProbs','numCuts','timeRuns');
 %         'exitFlags')

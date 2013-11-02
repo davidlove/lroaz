@@ -64,6 +64,7 @@ assertExceptionThrown( @() s.SetSecondStageDual( 1, [2 3], 'int' ), ...
 v = zeros(lp.numScenarios,1);
 ds = v;
 di = v;
+soln = v;
 for scen=1:lp.numScenarios
     v(scen) = scen-1;
     ds(scen) = scen*2;
@@ -71,6 +72,7 @@ for scen=1:lp.numScenarios
     s.SetSecondStageValue( scen, v(scen) );
     s.SetSecondStageDual( scen, ds(scen), 'slope' );
     s.SetSecondStageDual( scen, di(scen), 'int' );
+    s.SetSecondStageSolution( scen, soln(scen) );
 end
 s.SetTheta(2*ones(1,lp.numScenarios),'true');
 
@@ -78,6 +80,7 @@ s.SetTheta(2*ones(1,lp.numScenarios),'true');
 s.SecondStageValues;
 s.SecondStageSlope(1);
 s.SecondStageIntercept(1);
+s.SecondStageSolution(1);
 
 % Check that s variables are being calculated correctly
 assertElementsAlmostEqual( s.S(), (v-m)/l, 'relative', 1e-6 )
