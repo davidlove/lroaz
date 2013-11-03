@@ -1,0 +1,11 @@
+var: PX
+yr1: 2010
+mo1: Jan
+yr2: 2050
+mo2: Dec
+lat1: 32.0625
+lat2: 32.0625
+lon1: -110.8125
+lon2: -110.8125
+analysis: no
+products: bcsd
