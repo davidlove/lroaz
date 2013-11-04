@@ -98,8 +98,9 @@ lrlp = LRLP( lp, phi, obs, rho, opt, cutType );
 
 totalProblemsSolved = 1;
 totalCutsMade = 1;
-while lrlp.currentObjectiveTolerance > lrlp.objectiveTolerance
-    if totalProblemsSolved >= 300
+while ~(lrlp.currentObjectiveTolerance <= lrlp.objectiveTolerance && ...
+        lrlp.currentProbabilityTolerance <= lrlp.probabilityTolerance)
+    if totalProblemsSolved >= 50
         break
     end
     totalProblemsSolved = totalProblemsSolved + 1;
