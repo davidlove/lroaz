@@ -155,7 +155,7 @@ classdef LRLP < handle
             obj.InitializeBenders();
             
             obj.trustRegionMinSize = obj.trustRegionSize / 1e3;
-            obj.trustRegionMaxSize = obj.trustRegionSize * Inf;%1000;
+            obj.trustRegionMaxSize = obj.trustRegionSize * 1e3;
             assert( obj.trustRegionMinSize <= obj.trustRegionMaxSize );
         end
         
