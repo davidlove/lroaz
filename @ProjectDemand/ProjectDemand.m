@@ -40,7 +40,11 @@ classdef ProjectDemand < handle
         
         
         function gpcd = GPCD( obj, model, period )
-            gpcd = obj.gpcdMatrix(period, model);
+            if nargin == 3
+                gpcd = obj.gpcdMatrix(period, model);
+            elseif nargin == 2
+               gpcd = obj.models{model};
+            end
         end
     end
     

@@ -47,6 +47,7 @@ classdef LPModel < handle
         population
         demandMultiplier
         fractionDemandP
+        profileNames
     end
     
 %     Leftover properties

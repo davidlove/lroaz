@@ -118,11 +118,13 @@ if obj.numProfiles > 1
     lbmod = repmat(lb,[1,1,obj.numProfiles]);
     costmod = repmat(costVector,[1,1,obj.numProfiles]);
     rhsmod = repmat(RHS,[1,1,obj.numProfiles]);
+    obj.profileNames = cell(obj.numProfiles*numFiles, 1);
     for pp = 1:obj.numProfiles
         for ff = 1:numFiles
             for zz = 1:length(obj.zoneNames)
                 for tt = 1:obj.timePeriods
                     ii = sub2ind([numFiles, obj.numProfiles], ff, pp);
+                    obj.profileNames{ii} = strcat(cellInputFile{ff}, '--', obj.GPPD(pp));
                     potDemLoc = regexp(obj.Nr, strcat('^DemP_', obj.zoneNames{zz}, '$'));
                     potDemLoc = ~cellfun(@isempty, potDemLoc);
                     nonpotDemLoc = regexp(obj.Nr, strcat('^DemNP_', obj.zoneNames{zz}, '$'));
