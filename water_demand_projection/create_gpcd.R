@@ -11,16 +11,20 @@ projection = list()
 projection$tasmax <- monthly.tmax[[grid.type]][ , c('Year', 'Month', model.selection)]
 projection$pr <- monthly.pr[[grid.type]][ , c('Year', 'Month', model.selection)]
 
-# For plotting the fit to the historical demand
-#projection$tasmax <- demand[ , c('Year', 'Month', 'avg.max.temp.c')]
-#names(projection$tasmax$avg.max.temp.c) <- 'Historic'
-#projection$pr <- demand[ , c('Year', 'Month', 'rain.rate.mm')]
-#names(projection$tasmax)[3] <- 'Historic'
-#names(projection$pr)[3] <- 'Historic'
-# End fit for historical record
-
 projection$tasmax$bounded.year <- Bounded.Year(projection$tasmax$Year)
 projection$pr$bounded.year <- Bounded.Year(projection$pr$Year)
+
+# For plotting the fit to the historical demand
+fit <- list()
+fit$tasmax <- demand[ , c('Year', 'Month', 'avg.max.temp.c')]
+names(fit$tasmax$avg.max.temp.c) <- 'Historic'
+fit$pr <- demand[ , c('Year', 'Month', 'rain.rate.mm')]
+names(fit$tasmax)[3] <- 'Historic'
+names(fit$pr)[3] <- 'Historic'
+
+fit$tasmax$bounded.year <- Bounded.Year(fit$tasmax$Year)
+fit$pr$bounded.year <- Bounded.Year(fit$pr$Year)
+# End fit for historical record
 
 Projected.Yearly.GPCD <- function(ldf, model)
 {

@@ -5,8 +5,20 @@ source('load_pr.R')
 source('model_selection.R')
 source('WaterDemandModel.R')
 
+# Only use RCP8.5 scenarios
+model.selection <- model.selection[grep('rcp85$' ,model.selection)]
+
+# Gather historic and projection data
 historic <- demand[ , c('Year','Month','rain.rate.mm')]
 projection <- monthly.pr[[grid.type]][ , c('Year', 'Month', model.selection)]
+
+# Only look at years >= first.year in projection
+first.year <- 2040
+projection <- projection[projection$Year >= first.year, ]
+
+# Simplify names of projections
+names(historic)[3] <- 'Historic'
+names(projection) <- gsub('\\.1\\.rcp85$', '', names(projection))
 
 Name.Months <- function(months)
 {
@@ -20,9 +32,13 @@ Name.Months <- function(months)
 historic$Month <- Name.Months(historic$Month)
 projection$Month <- Name.Months(projection$Month)
 
-hist.temp.by.month <- aggregate(rain.rate.mm ~ Month, FUN=mean, data=historic)
+hist.temp.by.month <- aggregate(Historic ~ Month, FUN=mean, data=historic)
 proj.temp.by.month <- aggregate(. ~ Month, FUN=mean, 
-                                data=projection[ projection$Year >= 2040, names(projection) != 'Year'])
+                                data=projection[, names(projection) != 'Year'])
 
-total <- merge(x=hist.temp.by.month, y=proj.temp.by.month, by='Month')
-total <- total[order(total$Month), ]
+agg.table <- merge(x=hist.temp.by.month, y=proj.temp.by.month, by='Month')
+agg.table <- agg.table[order(agg.table$Month), ]
+agg.table[,names(agg.table)!='Month'] <- round(agg.table[,names(agg.table)!='Month'] * days.per.month)
+agg.table$Month <- as.character(agg.table$Month)
+#agg.table <- rbind(agg.table, c('Total', colSums(agg.table[,names(agg.table)!='Month'])))
+#agg.table[,names(agg.table)!='Month'] <- round(agg.table[,names(agg.table)!='Month'], 1)
