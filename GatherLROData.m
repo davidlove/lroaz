@@ -179,6 +179,7 @@ for ii = iiSet
         numCuts = zeros(1,length(rho));
         timeRuns = zeros(1,length(rho));
         scenSolns = cell(length(y1),length(rho));
+        profileNames = lp.profileNames;
     end
     
     pWorst(:,ii) = p1';
@@ -197,7 +198,8 @@ for ii = iiSet
     save(saveFileName,'rho','pWorst','x','lambda','mu', ...
         'scenCosts','scenSolns','objVals', ...
         'calcRho', 'alpha', ...
-        'numProbs','numCuts','timeRuns');
+        'numProbs','numCuts','timeRuns', ...
+        'profileNames');
 %         'exitFlags')
 
     clear solvedLRLP
