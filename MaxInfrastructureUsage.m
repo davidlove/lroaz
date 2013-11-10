@@ -1,6 +1,6 @@
 function [wwtpUsage, iprUsage] = MaxInfrastructureUsage( savedDataFile, lp )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+%MaxInfrastructureUsage computes the necessary capacity, in MGD, for both
+%the satellite WWTP and decentralized IPR
 
 d = load(savedDataFile);
 [scens, rhos] = size(d.scenSolns);

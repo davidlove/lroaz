@@ -1,5 +1,8 @@
 function newCost = CostByShortageCost( savedDataFile, lp, shortageCost, rho )
 
+%CostByShortageCost changes the shortage cost and recalculates the expected
+%worst-case cost for any solution
+
 d = load(savedDataFile);
 [scens, rhos] = size(d.scenSolns);
 numVars = size(lp.Abase, 2);
